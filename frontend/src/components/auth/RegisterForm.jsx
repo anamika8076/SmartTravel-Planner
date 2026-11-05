@@ -1,25 +1,37 @@
 import React, { useState } from 'react';
-import { User, Mail, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { User, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import AuthInput from './AuthInput';
 import PasswordInput from './PasswordInput';
-import SocialLoginButton from './SocialLoginButton';
+import { Alert } from '../ui/Feedback';
+import { useAuth } from '../../context/AuthContext';
+import { splitFormErrors } from '../../api/client';
 
-export default function RegisterForm({ onNavigateToLogin }) {
-  const [fullName, setFullName] = useState('');
+export default function RegisterForm() {
+  const { register, login } = useAuth();
+  const navigate = useNavigate();
+
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+
+  const clearError = (field) => {
+    if (errors[field]) setErrors((er) => ({ ...er, [field]: '' }));
+  };
 
   const validateForm = () => {
     const newErrors = {};
 
-    if (!fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
+    if (!username.trim()) {
+      newErrors.username = 'Username is required';
+    } else if (!/^[\w.@+-]+$/.test(username.trim())) {
+      newErrors.username = 'Use only letters, numbers and @ . + - _';
     }
 
     if (!email) {
@@ -30,8 +42,8 @@ export default function RegisterForm({ onNavigateToLogin }) {
 
     if (!password) {
       newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
     }
 
     if (!confirmPassword) {
@@ -48,27 +60,31 @@ export default function RegisterForm({ onNavigateToLogin }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSuccessMessage('');
-
+    setFormError('');
     if (!validateForm()) return;
 
     setIsLoading(true);
+    const creds = { username: username.trim(), email: email.trim(), password };
 
-    // Mock API registration call
-    setTimeout(() => {
+    try {
+      await register(creds);
+    } catch (err) {
+      const { fieldErrors, formError: msg } = splitFormErrors(err, ['username', 'email', 'password']);
+      setErrors(fieldErrors);
+      setFormError(msg);
       setIsLoading(false);
-      setSuccessMessage('Account created successfully! Welcome to Smart Travel Planner.');
-    }, 1200);
-  };
+      return;
+    }
 
-  const handleGoogleSignup = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setSuccessMessage('Google signup successful! Setting up your profile...');
-    }, 1000);
+    // Account exists now — sign straight in. If that fails, fall back to the login page.
+    try {
+      await login({ username: creds.username, password: creds.password, remember: true });
+      navigate('/trips', { replace: true });
+    } catch {
+      navigate('/login', { replace: true, state: { registered: true } });
+    }
   };
 
   return (
@@ -83,71 +99,64 @@ export default function RegisterForm({ onNavigateToLogin }) {
         </p>
       </div>
 
-      {/* Alert Messages */}
-      {successMessage && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2.5 shadow-xs animate-fadeIn">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-          <span>{successMessage}</span>
-        </div>
-      )}
+      <Alert>{formError}</Alert>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        {/* Full Name */}
         <AuthInput
-          label="Full Name"
-          id="fullName"
-          type="text"
+          label="Username"
+          id="username"
           icon={User}
-          placeholder="John Doe"
-          value={fullName}
+          placeholder="e.g. lav"
+          autoComplete="username"
+          value={username}
           onChange={(e) => {
-            setFullName(e.target.value);
-            if (errors.fullName) setErrors({ ...errors, fullName: '' });
+            setUsername(e.target.value);
+            clearError('username');
           }}
-          error={errors.fullName}
+          error={errors.username}
           required
         />
 
-        {/* Email */}
         <AuthInput
           label="Email"
           id="email"
           type="email"
           icon={Mail}
           placeholder="you@example.com"
+          autoComplete="email"
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
-            if (errors.email) setErrors({ ...errors, email: '' });
+            clearError('email');
           }}
           error={errors.email}
           required
         />
 
-        {/* Password */}
         <PasswordInput
           label="Password"
           id="password"
-          placeholder="Create a password"
+          placeholder="At least 8 characters"
+          autoComplete="new-password"
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
-            if (errors.password) setErrors({ ...errors, password: '' });
+            clearError('password');
           }}
           error={errors.password}
           required
         />
 
-        {/* Confirm Password */}
         <PasswordInput
           label="Confirm Password"
           id="confirmPassword"
           placeholder="Confirm your password"
+          autoComplete="new-password"
           value={confirmPassword}
           onChange={(e) => {
             setConfirmPassword(e.target.value);
-            if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
+            clearError('confirmPassword');
           }}
           error={errors.confirmPassword}
           required
@@ -161,19 +170,12 @@ export default function RegisterForm({ onNavigateToLogin }) {
               checked={agreeTerms}
               onChange={(e) => {
                 setAgreeTerms(e.target.checked);
-                if (errors.agreeTerms) setErrors({ ...errors, agreeTerms: '' });
+                clearError('agreeTerms');
               }}
               className="mt-0.5 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 transition"
             />
             <span className="text-xs sm:text-sm leading-snug">
-              I agree to the{' '}
-              <a href="#terms" onClick={(e) => e.preventDefault()} className="text-teal-600 hover:underline">
-                Terms & Conditions
-              </a>{' '}
-              and{' '}
-              <a href="#privacy" onClick={(e) => e.preventDefault()} className="text-teal-600 hover:underline">
-                Privacy Policy
-              </a>
+              I agree to the Terms & Conditions and Privacy Policy
             </span>
           </label>
           {errors.agreeTerms && (
@@ -181,7 +183,6 @@ export default function RegisterForm({ onNavigateToLogin }) {
           )}
         </div>
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={isLoading}
@@ -201,31 +202,12 @@ export default function RegisterForm({ onNavigateToLogin }) {
         </button>
       </form>
 
-      {/* Divider */}
-      <div className="relative flex items-center justify-center my-5">
-        <div className="border-t border-slate-200 w-full" />
-        <span className="bg-slate-50 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 absolute">
-          OR
-        </span>
-      </div>
-
-      {/* Google Signup */}
-      <SocialLoginButton
-        text="Sign up with Google"
-        onClick={handleGoogleSignup}
-      />
-
-      {/* Switch to Login */}
       <div className="text-center pt-2">
         <p className="text-sm text-slate-600">
           Already have an account?{' '}
-          <button
-            type="button"
-            onClick={onNavigateToLogin}
-            className="text-teal-600 hover:text-teal-700 font-semibold hover:underline transition-colors focus:outline-none"
-          >
+          <Link to="/login" className="text-teal-600 hover:text-teal-700 font-semibold hover:underline transition-colors">
             Log in
-          </button>
+          </Link>
         </p>
       </div>
     </div>

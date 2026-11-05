@@ -2,10 +2,10 @@ import React from 'react';
 import AuthLayout from '../components/auth/AuthLayout';
 import LoginForm from '../components/auth/LoginForm';
 
-export default function Login({ onNavigateToRegister }) {
+export default function Login() {
   return (
     <AuthLayout>
-      <LoginForm onNavigateToRegister={onNavigateToRegister} />
+      <LoginForm />
     </AuthLayout>
   );
 }

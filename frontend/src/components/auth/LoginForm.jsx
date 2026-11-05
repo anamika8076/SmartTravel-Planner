@@ -1,57 +1,53 @@
 import React, { useState } from 'react';
-import { Mail, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { User, ArrowRight, Loader2 } from 'lucide-react';
 import AuthInput from './AuthInput';
 import PasswordInput from './PasswordInput';
-import SocialLoginButton from './SocialLoginButton';
+import { Alert } from '../ui/Feedback';
+import { useAuth } from '../../context/AuthContext';
+import { splitFormErrors } from '../../api/client';
 
-export default function LoginForm({ onNavigateToRegister }) {
-  const [email, setEmail] = useState('');
+export default function LoginForm() {
+  const { login, sessionExpired } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+
+  const justRegistered = location.state?.registered;
 
   const validateForm = () => {
     const newErrors = {};
-    if (!email) {
-      newErrors.email = 'Email address is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
+    if (!username.trim()) newErrors.username = 'Username is required';
+    if (!password) newErrors.password = 'Password is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSuccessMessage('');
-    
+    setFormError('');
     if (!validateForm()) return;
 
     setIsLoading(true);
-
-    // Mock API authentication call
-    setTimeout(() => {
+    try {
+      await login({ username: username.trim(), password, remember: rememberMe });
+      const from = location.state?.from;
+      navigate(from ? `${from.pathname}${from.search || ''}` : '/trips', { replace: true });
+    } catch (err) {
+      const { fieldErrors, formError: msg } = splitFormErrors(err, ['username', 'password']);
+      setErrors(fieldErrors);
+      setFormError(
+        err.status === 401 ? 'Incorrect username or password. Please try again.' : msg
+      );
       setIsLoading(false);
-      setSuccessMessage('Logged in successfully! Redirecting to Trip Details...');
-    }, 1200);
-  };
-
-  const handleGoogleLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setSuccessMessage('Google authentication successful! Redirecting...');
-    }, 1000);
+    }
   };
 
   return (
@@ -66,37 +62,36 @@ export default function LoginForm({ onNavigateToRegister }) {
         </p>
       </div>
 
-      {/* Alert Messages */}
-      {successMessage && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2.5 shadow-xs animate-fadeIn">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-          <span>{successMessage}</span>
-        </div>
+      {justRegistered && !formError && (
+        <Alert type="success">Account created! Log in to start planning.</Alert>
       )}
+      {sessionExpired && !formError && !justRegistered && (
+        <Alert type="info">Your session expired. Please log in again.</Alert>
+      )}
+      <Alert>{formError}</Alert>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {/* Email Field */}
         <AuthInput
-          label="Email"
-          id="email"
-          type="email"
-          icon={Mail}
-          placeholder="you@example.com"
-          value={email}
+          label="Username"
+          id="username"
+          icon={User}
+          placeholder="Your username"
+          autoComplete="username"
+          value={username}
           onChange={(e) => {
-            setEmail(e.target.value);
-            if (errors.email) setErrors({ ...errors, email: '' });
+            setUsername(e.target.value);
+            if (errors.username) setErrors({ ...errors, username: '' });
           }}
-          error={errors.email}
+          error={errors.username}
           required
         />
 
-        {/* Password Field */}
         <PasswordInput
           label="Password"
           id="password"
           placeholder="Enter your password"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
@@ -106,30 +101,16 @@ export default function LoginForm({ onNavigateToRegister }) {
           required
         />
 
-        {/* Remember me & Forgot password row */}
-        <div className="flex items-center justify-between text-sm pt-0.5">
-          <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 hover:text-slate-900 transition-colors">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 transition"
-            />
-            <span>Remember me</span>
-          </label>
-          <a
-            href="#forgot-password"
-            onClick={(e) => {
-              e.preventDefault();
-              alert('Password reset link sent to your email.');
-            }}
-            className="text-teal-600 hover:text-teal-700 font-medium text-xs sm:text-sm hover:underline transition-colors"
-          >
-            Forgot password?
-          </a>
-        </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-slate-600 hover:text-slate-900 transition-colors pt-0.5">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 transition"
+          />
+          <span>Keep me logged in</span>
+        </label>
 
-        {/* Login Button */}
         <button
           type="submit"
           disabled={isLoading}
@@ -149,31 +130,18 @@ export default function LoginForm({ onNavigateToRegister }) {
         </button>
       </form>
 
-      {/* Divider */}
-      <div className="relative flex items-center justify-center my-6">
-        <div className="border-t border-slate-200 w-full" />
-        <span className="bg-slate-50 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 absolute">
-          OR
-        </span>
-      </div>
-
-      {/* Google Login */}
-      <SocialLoginButton
-        text="Continue with Google"
-        onClick={handleGoogleLogin}
-      />
-
-      {/* Switch to Register */}
-      <div className="text-center pt-2">
+      <div className="text-center pt-2 space-y-3">
         <p className="text-sm text-slate-600">
           Don’t have an account?{' '}
-          <button
-            type="button"
-            onClick={onNavigateToRegister}
-            className="text-teal-600 hover:text-teal-700 font-semibold hover:underline transition-colors focus:outline-none"
-          >
+          <Link to="/register" className="text-teal-600 hover:text-teal-700 font-semibold hover:underline transition-colors">
             Sign up
-          </button>
+          </Link>
+        </p>
+        <p className="text-xs text-slate-500">
+          Just looking?{' '}
+          <Link to="/destinations" className="text-slate-700 font-medium hover:underline">
+            Browse destinations
+          </Link>
         </p>
       </div>
     </div>
