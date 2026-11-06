@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bus, Car, CarTaxiFront, ExternalLink, Pencil, Plane, TrainFront, Trash2, Route } from 'lucide-react';
+import { Bike, Bus, Car, ExternalLink, Pencil, Plane, TrainFront, Trash2, Route } from 'lucide-react';
 import ItemsSection from './ItemsSection';
 import TransportForm from './TransportForm';
 import useTripItems from './useTripItems';
@@ -9,7 +9,7 @@ import { transportApi } from '../../api/endpoints';
 import { TRANSPORT_TYPES, labelFor } from '../../constants/options';
 import { formatDate, formatDuration, formatINR, minutesBetween } from '../../utils/format';
 
-const ICONS = { flight: Plane, train: TrainFront, bus: Bus, car: Car, taxi: CarTaxiFront };
+const ICONS = { flight: Plane, train: TrainFront, bus: Bus, car: Car, bike: Bike };
 
 function bestIds(items) {
   if (items.length < 2) return {};

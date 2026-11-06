@@ -147,7 +147,7 @@ function ModePicker({ value, onChange, error }) {
   return (
     <fieldset className="space-y-1.5">
       <legend className="block text-sm font-medium text-slate-700 mb-1.5">How will you travel?</legend>
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {TRAVEL_MODES.map((m) => {
           const Icon = travelModeIcon(m.value);
           const active = value === m.value;

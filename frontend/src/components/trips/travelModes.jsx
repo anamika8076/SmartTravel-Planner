@@ -1,16 +1,15 @@
 import React from 'react';
-import { Bus, Car, CarFront, Plane, TrainFront } from 'lucide-react';
+import { Bus, Car, CarFront, Route } from 'lucide-react';
 
 const ICONS = {
   self_vehicle: Car,
   rented_vehicle: CarFront,
-  bus: Bus,
-  train: TrainFront,
-  flight: Plane,
+  public_transport: Bus,
+  any: Route,
 };
 
 export function travelModeIcon(mode) {
-  return ICONS[mode] || Car;
+  return ICONS[mode] || Route;
 }
 
 export function TravelModeIcon({ mode, className }) {

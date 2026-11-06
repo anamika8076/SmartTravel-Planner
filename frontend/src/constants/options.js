@@ -1,12 +1,13 @@
-// Choice values sent to the backend. Keep these in sync with the
-// `choices` on the Django models — the value is what gets stored.
+// Choice values sent to the backend. These must match the `choices` on the
+// Django models in Travel-app-backend — the value is what gets stored:
+//   Trip.TRAVEL_MODE_CHOICES, TransportOption.TRANSPORT_TYPES,
+//   Accommodation.ACCOMMODATION_TYPES (trips/models.py)
 
 export const TRAVEL_MODES = [
   { value: 'self_vehicle', label: 'Self vehicle' },
   { value: 'rented_vehicle', label: 'Rented vehicle' },
-  { value: 'bus', label: 'Bus' },
-  { value: 'train', label: 'Train' },
-  { value: 'flight', label: 'Flight' },
+  { value: 'public_transport', label: 'Public transport' },
+  { value: 'any', label: 'Any mode' },
 ];
 
 export const TRANSPORT_TYPES = [
@@ -14,15 +15,15 @@ export const TRANSPORT_TYPES = [
   { value: 'train', label: 'Train' },
   { value: 'bus', label: 'Bus' },
   { value: 'car', label: 'Car' },
-  { value: 'taxi', label: 'Taxi' },
+  { value: 'bike', label: 'Bike' },
 ];
 
 export const ACCOMMODATION_TYPES = [
   { value: 'hotel', label: 'Hotel' },
   { value: 'hostel', label: 'Hostel' },
-  { value: 'homestay', label: 'Homestay' },
   { value: 'resort', label: 'Resort' },
-  { value: 'apartment', label: 'Apartment' },
+  { value: 'homestay', label: 'Homestay' },
+  { value: 'guesthouse', label: 'Guesthouse' },
 ];
 
 export function labelFor(options, value) {
