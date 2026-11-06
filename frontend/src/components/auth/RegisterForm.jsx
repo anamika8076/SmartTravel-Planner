@@ -91,10 +91,10 @@ export default function RegisterForm() {
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2 text-left">
-        <h2 className="text-3xl font-bold tracking-tight text-slate-900">
+        <h2 className="font-serif text-4xl font-semibold tracking-tight text-slate-900">
           Create an account 🚀
         </h2>
-        <p className="text-slate-500 text-sm">
+        <p className="text-slate-500">
           Start planning your personalized trips today.
         </p>
       </div>
@@ -172,7 +172,7 @@ export default function RegisterForm() {
                 setAgreeTerms(e.target.checked);
                 clearError('agreeTerms');
               }}
-              className="mt-0.5 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 transition"
+              className="mt-0.5 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-orange-500 transition"
             />
             <span className="text-xs sm:text-sm leading-snug">
               I agree to the Terms & Conditions and Privacy Policy
@@ -186,7 +186,7 @@ export default function RegisterForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-medium py-3 px-4 rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-75 disabled:pointer-events-none transition-all duration-200 mt-2"
+          className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-orange-500 text-white font-semibold py-3.5 px-4 rounded-2xl shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-75 disabled:pointer-events-none transition-all duration-200 mt-2"
         >
           {isLoading ? (
             <>
@@ -205,7 +205,7 @@ export default function RegisterForm() {
       <div className="text-center pt-2">
         <p className="text-sm text-slate-600">
           Already have an account?{' '}
-          <Link to="/login" className="text-teal-600 hover:text-teal-700 font-semibold hover:underline transition-colors">
+          <Link to="/login" className="text-orange-600 hover:text-orange-700 font-semibold hover:underline transition-colors">
             Log in
           </Link>
         </p>

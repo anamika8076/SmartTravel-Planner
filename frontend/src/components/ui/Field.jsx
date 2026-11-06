@@ -2,7 +2,7 @@ import React from 'react';
 
 const base =
   'w-full rounded-xl border bg-white py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:outline-none focus:ring-2';
-const ok = 'border-slate-200 hover:border-slate-300 focus:border-slate-800 focus:ring-slate-900/10';
+const ok = 'border-slate-200 hover:border-slate-300 focus:border-orange-500 focus:ring-orange-500/15';
 const bad = 'border-rose-300 focus:border-rose-500 focus:ring-rose-200';
 
 function Wrapper({ id, label, hint, error, children, className = '' }) {

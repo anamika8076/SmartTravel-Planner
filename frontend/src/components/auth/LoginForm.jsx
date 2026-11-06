@@ -54,10 +54,10 @@ export default function LoginForm() {
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2 text-left">
-        <h2 className="text-3xl font-bold tracking-tight text-slate-900">
+        <h2 className="font-serif text-4xl font-semibold tracking-tight text-slate-900">
           Welcome back 👋
         </h2>
-        <p className="text-slate-500 text-sm">
+        <p className="text-slate-500">
           Let’s continue planning your next adventure.
         </p>
       </div>
@@ -106,7 +106,7 @@ export default function LoginForm() {
             type="checkbox"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 transition"
+            className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-orange-500 transition"
           />
           <span>Keep me logged in</span>
         </label>
@@ -114,7 +114,7 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-medium py-3 px-4 rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-75 disabled:pointer-events-none transition-all duration-200"
+          className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-orange-500 text-white font-semibold py-3.5 px-4 rounded-2xl shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-75 disabled:pointer-events-none transition-all duration-200"
         >
           {isLoading ? (
             <>
@@ -133,7 +133,7 @@ export default function LoginForm() {
       <div className="text-center pt-2 space-y-3">
         <p className="text-sm text-slate-600">
           Don’t have an account?{' '}
-          <Link to="/register" className="text-teal-600 hover:text-teal-700 font-semibold hover:underline transition-colors">
+          <Link to="/register" className="text-orange-600 hover:text-orange-700 font-semibold hover:underline transition-colors">
             Sign up
           </Link>
         </p>

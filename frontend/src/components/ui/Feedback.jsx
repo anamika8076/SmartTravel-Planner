@@ -31,13 +31,13 @@ export function Spinner({ label = 'Loading…' }) {
 
 export function EmptyState({ icon: Icon, title, children, action }) {
   return (
-    <div className="text-center py-14 px-6 bg-white border border-dashed border-slate-300 rounded-2xl">
+    <div className="text-center py-14 px-6 bg-white/80 border border-dashed border-orange-200 rounded-2xl animate-rise">
       {Icon && (
-        <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-          <Icon className="w-6 h-6" />
+        <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-100 to-orange-100 flex items-center justify-center text-orange-700 rotate-3">
+          <Icon className="w-7 h-7 -rotate-3" />
         </div>
       )}
-      <h3 className="font-semibold text-slate-900">{title}</h3>
+      <h3 className="font-serif text-xl font-semibold text-slate-900">{title}</h3>
       {children && <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">{children}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -45,12 +45,14 @@ export function EmptyState({ icon: Icon, title, children, action }) {
 }
 
 export function Card({ className = '', children }) {
-  return <div className={`bg-white border border-slate-200 rounded-2xl shadow-sm ${className}`}>{children}</div>;
+  return <div className={`bg-white border border-slate-200/80 rounded-2xl shadow-sm shadow-slate-900/[0.03] ${className}`}>{children}</div>;
 }
 
 export function Badge({ tone = 'slate', children }) {
   const tones = {
     slate: 'bg-slate-100 text-slate-700',
+    plum: 'bg-orange-50 text-slate-800 ring-1 ring-orange-200',
+    white: 'bg-white/15 text-white ring-1 ring-white/25 backdrop-blur',
     teal: 'bg-teal-50 text-teal-700 ring-1 ring-teal-200',
     amber: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
     emerald: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',

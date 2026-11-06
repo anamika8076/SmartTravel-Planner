@@ -97,3 +97,28 @@ export function formatDuration(minutes) {
   const rest = m % 60;
   return rest ? `${h} hr ${rest} min` : `${h} hr`;
 }
+
+/** Whole days from today until the given date (negative if in the past). */
+export function daysUntil(value) {
+  const d = parseDate(value);
+  const t = parseDate(todayISO());
+  if (!d || !t) return null;
+  return Math.round((d - t) / 86_400_000);
+}
+
+/** Human countdown for a trip, e.g. "Starts in 12 days", "Day 2 of 6". */
+export function tripCountdown(start, end) {
+  const status = tripStatus(start, end);
+  if (status === 'completed') {
+    const ago = -daysUntil(end);
+    return ago <= 1 ? 'Ended yesterday' : ago < 30 ? `Ended ${ago} days ago` : 'Completed';
+  }
+  if (status === 'ongoing') {
+    const day = -daysUntil(start) + 1;
+    return `Day ${day} of ${nightsBetween(start, end) + 1}`;
+  }
+  const n = daysUntil(start);
+  if (n === 0) return 'Starts today';
+  if (n === 1) return 'Starts tomorrow';
+  return `Starts in ${n} days`;
+}

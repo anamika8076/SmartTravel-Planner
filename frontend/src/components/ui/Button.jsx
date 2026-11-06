@@ -3,16 +3,18 @@ import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 const VARIANTS = {
-  primary: 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm hover:shadow',
-  secondary: 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300',
+  primary: 'bg-slate-900 hover:bg-slate-800 text-white shadow-md shadow-slate-900/20 hover:shadow-lg hover:shadow-slate-900/25 active:scale-[0.98]',
+  accent: 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm shadow-orange-500/30 hover:shadow-md hover:shadow-orange-500/30 active:scale-[0.98]',
+  light: 'bg-white/15 hover:bg-white hover:text-slate-900 text-white ring-1 ring-inset ring-white/30 backdrop-blur-md',
+  secondary: 'bg-white hover:bg-orange-50 text-slate-700 hover:text-slate-900 ring-1 ring-inset ring-slate-200 hover:ring-orange-200',
   danger: 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm',
-  ghost: 'text-slate-600 hover:text-slate-900 hover:bg-slate-100',
+  ghost: 'text-slate-600 hover:text-slate-900 hover:bg-orange-50',
   'ghost-danger': 'text-slate-500 hover:text-rose-600 hover:bg-rose-50',
 };
 
 const SIZES = {
-  sm: 'text-xs px-2.5 py-1.5 gap-1.5 rounded-lg',
-  md: 'text-sm px-4 py-2.5 gap-2 rounded-xl',
+  sm: 'text-xs px-3 py-1.5 gap-1.5 rounded-full',
+  md: 'text-sm font-semibold px-5 py-2.5 gap-2 rounded-full',
 };
 
 export default function Button({
@@ -27,7 +29,7 @@ export default function Button({
   disabled,
   ...props
 }) {
-  const classes = `inline-flex items-center justify-center font-medium transition-all duration-150 disabled:opacity-60 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 ${VARIANTS[variant]} ${SIZES[size]} ${className}`;
+  const classes = `inline-flex items-center justify-center font-medium transition-all duration-150 disabled:opacity-60 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/40 ${VARIANTS[variant]} ${SIZES[size]} ${className}`;
   const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
   const content = (
     <>

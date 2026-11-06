@@ -13,7 +13,7 @@ export default function PageHeader({ back, eyebrow, title, subtitle, actions }) 
       )}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div className="min-w-0">
-          {eyebrow && <p className="text-xs font-semibold uppercase tracking-wider text-teal-600 mb-1">{eyebrow}</p>}
+          {eyebrow && <p className="text-xs font-semibold uppercase tracking-wider text-orange-600 mb-1">{eyebrow}</p>}
           <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 tracking-tight break-words">{title}</h1>
           {subtitle && <p className="mt-2 text-slate-500">{subtitle}</p>}
         </div>

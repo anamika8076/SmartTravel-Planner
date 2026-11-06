@@ -2,10 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-stone-50 text-slate-900 antialiased;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: #0f172a;
+  }
+  :focus-visible {
+    outline: 2px solid #f97316;
+    outline-offset: 2px;
+  }
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
+}
+
 @layer utilities {
   .bg-dotted-pattern {
-    background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
-    background-size: 24px 24px;
+    background-image: radial-gradient(#e7e5e4 1.2px, transparent 1.2px);
+    background-size: 22px 22px;
+  }
+  .bg-ink-gradient {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 60%, #020617 100%);
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .text-shadow {
+    text-shadow: 0 2px 12px rgb(0 0 0 / 0.35);
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Animations (kept here rather than in tailwind.config.js) */
+  .animate-fadeIn {
+    animation: stp-fade-in 200ms ease-out;
+  }
+  .animate-rise {
+    animation: stp-rise 450ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .animate-pop {
+    animation: stp-pop 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .animate-float {
+    animation: stp-float 6s ease-in-out infinite;
+  }
+  .animate-kenburns {
+    animation: stp-kenburns 18s ease-out both;
+  }
+}
+
+@keyframes stp-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes stp-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes stp-pop {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes stp-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes stp-kenburns {
+  from { transform: scale(1.08); }
+  to { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
   }
 }
 
@@ -18,9 +103,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d6d3d1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a8a29e;
 }

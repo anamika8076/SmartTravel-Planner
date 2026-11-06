@@ -20,23 +20,19 @@ function bestIds(items) {
 function StayItem({ stay, nights, best, onEdit, onDelete }) {
   const hasRating = stay.rating != null && stay.rating !== '';
   return (
-    <div className="border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-colors">
-      <div className="flex items-start gap-3">
-        <span className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
-          <BedDouble className="w-[18px] h-[18px]" />
+    <div className="rounded-xl ring-1 ring-slate-200 hover:ring-orange-200 hover:shadow-md hover:shadow-slate-900/5 bg-white transition-all">
+      <div className="flex items-start gap-3 p-4">
+        <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-50 to-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0">
+          <BedDouble className="w-5 h-5" />
         </span>
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium text-slate-900">{stay.name}</span>
-            <Badge>{labelFor(ACCOMMODATION_TYPES, stay.accommodation_type)}</Badge>
-            {best.cheapest === stay.id && <Badge tone="emerald">Cheapest</Badge>}
-            {best.topRated === stay.id && <Badge tone="amber">Top rated</Badge>}
-          </div>
+          <p className="font-medium text-slate-900">{stay.name}</p>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
             <span className="inline-flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-slate-400" />
               {stay.location}
             </span>
+            <span className="text-slate-400">{labelFor(ACCOMMODATION_TYPES, stay.accommodation_type)}</span>
             {hasRating && (
               <span className="inline-flex items-center gap-1">
                 <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
@@ -44,20 +40,26 @@ function StayItem({ stay, nights, best, onEdit, onDelete }) {
               </span>
             )}
           </div>
+          {(best.cheapest === stay.id || best.topRated === stay.id) && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {best.cheapest === stay.id && <Badge tone="emerald">Cheapest</Badge>}
+              {best.topRated === stay.id && <Badge tone="amber">Top rated</Badge>}
+            </div>
+          )}
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="font-semibold text-slate-900">{formatINR(stay.price_per_night)}</p>
+          <p className="font-semibold text-slate-900 tabular-nums">{formatINR(stay.price_per_night)}</p>
           <p className="text-xs text-slate-500">per night</p>
           {nights > 0 && (
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-500 tabular-nums">
               ≈ {formatINR(Number(stay.price_per_night) * nights)} / {nights}N
             </p>
           )}
         </div>
       </div>
-      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-1">
+      <div className="px-2 py-1.5 border-t border-slate-100 flex items-center justify-end gap-0.5">
         {stay.booking_url && (
-          <Button size="sm" variant="ghost" icon={ExternalLink} href={stay.booking_url}>
+          <Button size="sm" variant="ghost" icon={ExternalLink} href={stay.booking_url} className="mr-auto !text-orange-600 hover:!bg-orange-50">
             Book
           </Button>
         )}
@@ -77,10 +79,11 @@ export default function AccommodationSection({ trip }) {
     <ItemsSection
       title="Where to stay"
       icon={BedDouble}
+      tint="bg-orange-50 text-orange-600"
       description="Shortlist hotels, hostels and homestays."
       addLabel="Add stay"
       noun="stay"
-      emptyText="No stays yet. Add a few options to compare price and rating."
+      emptyText="Add a few hotels or hostels to compare price and rating."
       state={state}
       renderItem={(stay, { onEdit, onDelete }) => (
         <StayItem stay={stay} nights={nights} best={best} onEdit={onEdit} onDelete={onDelete} />

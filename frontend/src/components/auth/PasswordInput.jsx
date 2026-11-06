@@ -31,12 +31,12 @@ export default function PasswordInput({
           onChange={onChange}
           placeholder={placeholder}
           required={required}
-          className={`w-full rounded-xl border bg-white py-3 pl-11 pr-11 text-sm text-slate-900 placeholder:text-slate-400 
+          className={`w-full rounded-2xl border bg-stone-50 focus:bg-white py-3.5 pl-11 pr-11 text-sm text-slate-900 placeholder:text-slate-400 
             transition-all duration-200 focus:outline-none focus:ring-2 
             ${
               error
                 ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-200'
-                : 'border-slate-200 focus:border-slate-800 focus:ring-slate-900/10 hover:border-slate-300'
+                : 'border-slate-200 focus:border-orange-500 focus:ring-orange-500/15 hover:border-slate-300'
             }`}
           {...props}
         />
