@@ -20,6 +20,7 @@ export default function ItemsSection({
   renderForm,
   emptyText,
   tint = 'bg-orange-50 text-orange-700',
+  extraAction,
 }) {
   const { items, loading, error, reload, create, update, remove } = state;
   const [editing, setEditing] = useState(null); // null | 'new' | item
@@ -49,7 +50,7 @@ export default function ItemsSection({
   };
 
   return (
-    <Card className="p-5 sm:p-6">
+    <Card className="p-5 sm:p-6 h-full flex flex-col">
       <div className="flex items-start justify-between gap-4 mb-5">
         <div className="flex items-start gap-3">
           <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tint}`}>
@@ -65,9 +66,11 @@ export default function ItemsSection({
             <p className="text-sm text-slate-500">{description}</p>
           </div>
         </div>
-        <Button size="sm" icon={Plus} onClick={() => setEditing('new')} className="flex-shrink-0">
-          <span className="hidden sm:inline">{addLabel}</span>
-          <span className="sm:hidden">Add</span>
+      </div>
+      <div className="flex flex-wrap gap-2 -mt-1 mb-5">
+        {extraAction}
+        <Button size="sm" variant={extraAction ? 'secondary' : 'primary'} icon={Plus} onClick={() => setEditing('new')}>
+          {extraAction ? 'Add manually' : addLabel}
         </Button>
       </div>
 
@@ -79,7 +82,7 @@ export default function ItemsSection({
         <button
           type="button"
           onClick={() => setEditing('new')}
-          className="w-full text-sm text-slate-500 text-center py-8 px-4 border-2 border-dashed border-slate-200 rounded-xl hover:border-orange-300 hover:text-slate-800 hover:bg-orange-50/50 transition-colors"
+          className="w-full flex-1 min-h-[9rem] flex flex-col items-center justify-center text-sm text-slate-500 text-center py-8 px-4 border-2 border-dashed border-slate-200 rounded-xl hover:border-orange-300 hover:text-slate-800 hover:bg-orange-50/50 transition-colors"
         >
           <Plus className="w-5 h-5 mx-auto mb-2 text-slate-400" />
           {emptyText}

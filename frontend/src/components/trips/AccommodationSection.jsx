@@ -1,5 +1,7 @@
-import React from 'react';
-import { BedDouble, ExternalLink, MapPin, Pencil, Star, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Modal } from '../ui/Modal';
+import HotelPicker from './HotelPicker';
+import { BedDouble, ExternalLink, MapPin, Pencil, Search, Star, Trash2 } from 'lucide-react';
 import ItemsSection from './ItemsSection';
 import AccommodationForm from './AccommodationForm';
 import useTripItems from './useTripItems';
@@ -70,13 +72,34 @@ function StayItem({ stay, nights, best, onEdit, onDelete }) {
   );
 }
 
-export default function AccommodationSection({ trip }) {
-  const state = useTripItems(accommodationsApi, trip.id);
+export default function AccommodationSection({ trip, reloadKey, onChange }) {
+  const state = useTripItems(accommodationsApi, trip.id, reloadKey, onChange);
+  const [finding, setFinding] = useState(false);
+
+  const addHotel = async (body) => {
+    await state.create(body);
+  };
   const best = bestIds(state.items);
   const nights = nightsBetween(trip.start_date, trip.end_date);
 
   return (
+    <>
+    <Modal open={finding} title={`Hotels in ${trip.destination}`} onClose={() => setFinding(false)}>
+      {finding && (
+        <>
+          <HotelPicker tripId={trip.id} destination={trip.destination} onAdd={addHotel} />
+          <div className="flex justify-end pt-4">
+            <Button variant="secondary" onClick={() => setFinding(false)}>Done</Button>
+          </div>
+        </>
+      )}
+    </Modal>
     <ItemsSection
+      extraAction={
+        <Button size="sm" icon={Search} onClick={() => setFinding(true)}>
+          Find hotels
+        </Button>
+      }
       title="Where to stay"
       icon={BedDouble}
       tint="bg-orange-50 text-orange-600"
@@ -92,5 +115,6 @@ export default function AccommodationSection({ trip }) {
         <AccommodationForm trip={trip} stay={item} onSubmit={onSubmit} onCancel={onCancel} />
       )}
     />
+    </>
   );
 }

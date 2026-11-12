@@ -74,7 +74,7 @@ export class ApiError extends Error {
 
     if (data && typeof data === 'object' && !Array.isArray(data)) {
       for (const [key, value] of Object.entries(data)) {
-        if (key !== 'detail' && key !== 'non_field_errors') {
+        if (key !== 'detail' && key !== 'non_field_errors' && key !== 'error') {
           this.fieldErrors[key] = toText(value);
         }
       }
@@ -84,6 +84,7 @@ export class ApiError extends Error {
   }
 
   static describe(status, data, fieldErrors) {
+    if (data?.error) return toText(data.error);
     if (data?.detail) return toText(data.detail);
     if (data?.non_field_errors) return toText(data.non_field_errors);
     if (status === 0) return 'Could not reach the server. Make sure the backend is running.';
@@ -94,6 +95,9 @@ export class ApiError extends Error {
     if (status === 401) return 'Your session has expired. Please log in again.';
     if (status === 403) return 'You do not have permission to do that.';
     if (status === 404) return 'We could not find what you were looking for.';
+    if (status === 502 || status === 503 || status === 504) {
+      return 'An outside data provider is not responding right now. Please try again in a moment.';
+    }
     if (status >= 500) return 'The server ran into a problem. Please try again later.';
     return `Request failed (${status}).`;
   }
@@ -115,7 +119,7 @@ export function splitFormErrors(err, knownFields) {
   }
   const hasLeftovers = Object.keys(leftovers).length > 0;
   let formError = '';
-  if (err.status !== 400 || err.data?.detail || err.data?.non_field_errors) {
+  if (err.status !== 400 || err.data?.detail || err.data?.non_field_errors || err.data?.error) {
     formError = err.message;
   } else if (hasLeftovers) {
     formError = ApiError.describe(400, null, leftovers);

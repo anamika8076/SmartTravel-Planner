@@ -185,10 +185,11 @@ export default function TripDetail() {
         />
       </Card>
 
-      <div className="grid lg:grid-cols-2 gap-6 items-start">
+      <div className="grid lg:grid-cols-2 gap-6 items-stretch">
         <TransportSection trip={trip} />
         <AccommodationSection trip={trip} />
       </div>
+
 
       <ConfirmDialog
         open={confirmOpen}

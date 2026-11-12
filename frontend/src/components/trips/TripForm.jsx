@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, CalendarDays, MapPin, Minus, Navigation, Plus, Wallet } from 'lucide-react';
 import { TextField } from '../ui/Field';
+import Combobox from '../ui/Combobox';
 import { Alert } from '../ui/Feedback';
 import Button from '../ui/Button';
 import { TRAVEL_MODES } from '../../constants/options';
 import { destinationsApi } from '../../api/endpoints';
 import { splitFormErrors } from '../../api/client';
-import { formatINR, nightsBetween, todayISO } from '../../utils/format';
+import { formatINR, nightsBetween, titleCase, todayISO } from '../../utils/format';
 import { travelModeIcon } from './travelModes';
 import Photo from '../ui/Photo';
 import { PHOTOS } from '../../utils/visuals';
@@ -192,7 +193,7 @@ export default function TripForm({ trip, initialValues, submitLabel, submitIcon,
     let alive = true;
     destinationsApi
       .list()
-      .then((list) => alive && setDestinationNames(list.map((d) => d.name).filter(Boolean)))
+      .then((list) => alive && setDestinationNames([...new Set(list.map((d) => titleCase(d.name)).filter(Boolean))]))
       .catch(() => {});
     return () => {
       alive = false;
@@ -247,22 +248,29 @@ export default function TripForm({ trip, initialValues, submitLabel, submitIcon,
             error={errors.source}
             autoComplete="off"
           />
-          <TextField
-            id="destination"
-            label="To"
-            icon={MapPin}
-            placeholder="e.g. Manali"
-            value={values.destination}
-            onChange={set('destination')}
-            error={errors.destination}
-            list="destination-suggestions"
-            autoComplete="off"
-          />
-          <datalist id="destination-suggestions">
-            {destinationNames.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
+          <div className="space-y-1.5">
+            <label htmlFor="destination" className="block text-sm font-medium text-slate-700">To</label>
+            <Combobox
+              id="destination"
+              ariaInvalid={!!errors.destination}
+              icon={MapPin}
+              label="Saved destinations"
+              placeholder="e.g. Manali"
+              options={destinationNames}
+              value={values.destination}
+              onChange={set('destination')}
+              inputClassName={`w-full rounded-xl border bg-white py-2.5 pl-11 text-sm text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:outline-none focus:ring-2 ${
+                errors.destination
+                  ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-200'
+                  : 'border-slate-200 hover:border-slate-300 focus:border-orange-500 focus:ring-orange-500/15'
+              }`}
+            />
+            {errors.destination ? (
+              <p className="text-xs text-rose-500 font-medium">{errors.destination}</p>
+            ) : (
+              <p className="text-xs text-slate-400">Pick a saved destination from the list.</p>
+            )}
+          </div>
         </div>
       </section>
 

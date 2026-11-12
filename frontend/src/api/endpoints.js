@@ -31,3 +31,27 @@ export const accommodationsApi = resource('/api/accommodations/', { auth: true }
 // Public, read-only
 export const destinationsApi = resource('/api/destinations/', { auth: false });
 export const placesApi = resource('/api/places/', { auth: false });
+
+// Planner: one optimal plan per trip.
+// generate → full result (transport, stay, recommendations, costs, itinerary).
+// latest   → saved plan with itinerary items only (404 if none yet).
+export const plannerApi = {
+  generate: (tripId) => request(`/api/planner/trips/${tripId}/generate/`, { method: 'POST', body: {}, auth: true }),
+  latest: (tripId) => request(`/api/planner/trips/${tripId}/latest/`, { auth: true }),
+};
+
+// Live flight offers (provider can be unavailable → 502).
+export const flightsApi = {
+  search: ({ origin, destination, date_from, adults }) =>
+    request(withQuery('/api/flights/search/', { origin, destination, date_from, adults }), { auth: true }),
+};
+
+// Hotels saved from OpenStreetMap for a destination (no prices).
+export const hotelsApi = {
+  search: (cityName) => request(withQuery('/api/hotels/search/', { city_name: cityName }), { auth: true }),
+};
+
+// Look up a city on OpenStreetMap and save its places (public).
+export const destinationSearchApi = {
+  search: ({ city, state }) => request('/api/destinations/search/', { method: 'POST', body: { city, state } }),
+};

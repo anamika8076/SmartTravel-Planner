@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowUpRight, MapPin, MapPinned, RotateCw, Search, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowUpRight, Compass, MapPin, MapPinned, RotateCw, Search, X } from 'lucide-react';
+import DiscoverDestination from '../components/destinations/DiscoverDestination';
 import Button from '../components/ui/Button';
 import Hero from '../components/ui/Hero';
 import Photo from '../components/ui/Photo';
@@ -8,6 +9,7 @@ import { Alert, EmptyState } from '../components/ui/Feedback';
 import { Skeleton } from '../components/ui/Skeleton';
 import { destinationsApi } from '../api/endpoints';
 import { PHOTOS } from '../utils/visuals';
+import { titleCase } from '../utils/format';
 
 function DestinationCard({ d, index, featured }) {
   const count = Array.isArray(d.places) ? d.places.length : null;
@@ -44,7 +46,7 @@ function DestinationCard({ d, index, featured }) {
             <MapPin className="w-3.5 h-3.5" />
             {[d.state, d.country].filter(Boolean).join(', ')}
           </p>
-          <h3 className={`font-serif font-semibold text-shadow ${featured ? 'text-4xl sm:text-5xl' : 'text-3xl'}`}>{d.name}</h3>
+          <h3 className={`font-serif font-semibold text-shadow ${featured ? 'text-4xl sm:text-5xl' : 'text-3xl'}`}>{titleCase(d.name)}</h3>
           {d.description && (
             <p className={`mt-1 text-sm text-white/85 ${featured ? 'max-w-md' : 'line-clamp-2'}`}>{d.description}</p>
           )}
@@ -59,6 +61,15 @@ export default function Destinations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
+  const [prefill, setPrefill] = useState(''); // city sent up from "not saved" search
+  const discoverInput = useRef(null);
+  const navigate = useNavigate();
+
+  const startDiscover = (city = '') => {
+    setPrefill(city);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => discoverInput.current?.focus(), 350);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -89,37 +100,29 @@ export default function Destinations() {
       <Hero src={PHOTOS.cloudPeaks} name="explore">
         <div className="flex-1 flex flex-col justify-end max-w-2xl">
           <span className="self-start px-3 py-1 rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/25 text-xs font-semibold uppercase tracking-wider">
-            Explore India
+            Discover new destinations
           </span>
           <h1 className="mt-4 font-serif text-5xl sm:text-6xl font-semibold tracking-tight text-shadow">
             Find your next <span className="italic text-orange-300">favourite place</span>
           </h1>
           <p className="mt-3 text-white/85 max-w-lg text-lg">
-            Attractions, cafés and stays — with how long each takes and what it costs.
+            Enter any Indian city — we’ll fetch its attractions, cafés, restaurants and hotels from OpenStreetMap and save it to your destinations.
           </p>
-          <div className="mt-7 relative max-w-xl">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search Manali, Goa, Rajasthan…"
-              aria-label="Search destinations"
-              className="w-full rounded-full bg-white py-4 pl-14 pr-12 text-base text-slate-900 placeholder:text-slate-400 shadow-2xl shadow-black/30 focus:outline-none focus:ring-4 focus:ring-orange-400/50 [&::-webkit-search-cancel-button]:hidden"
+          <div className="mt-7 max-w-2xl">
+            <DiscoverDestination
+              key={prefill}
+              variant="hero"
+              inputRef={discoverInput}
+              initialCity={prefill}
+              onFound={({ id }) => {
+                if (id) navigate(`/destinations/${id}`);
+                else load();
+              }}
             />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                aria-label="Clear search"
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
           </div>
         </div>
       </Hero>
+
 
       {loading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 auto-rows-[18rem] gap-5">
@@ -130,25 +133,55 @@ export default function Destinations() {
       ) : error ? (
         <Alert action={<Button size="sm" variant="secondary" icon={RotateCw} onClick={load}>Retry</Button>}>{error}</Alert>
       ) : destinations.length === 0 ? (
-        <EmptyState icon={MapPinned} title="No destinations yet">
-          Destinations added in the backend will appear here.
+        <EmptyState icon={MapPinned} title="No destinations yet" action={<Button icon={Compass} onClick={() => startDiscover()}>Discover a destination</Button>}>
+          Look up any Indian city and we’ll save its attractions, cafés and restaurants.
         </EmptyState>
       ) : (
         <section className="space-y-6">
-          <div className="flex items-end justify-between gap-3">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
-              <h2 className="font-serif text-3xl font-semibold text-slate-900">
-                {query ? 'Search results' : 'Popular destinations'}
-              </h2>
+              <h2 className="font-serif text-3xl font-semibold text-slate-900">Saved destinations</h2>
               <p className="text-sm text-slate-500 mt-1">
-                {filtered.length} of {destinations.length} destinations
+                {query
+                  ? `${filtered.length} of ${destinations.length} match “${query.trim()}”`
+                  : `${destinations.length} destination${destinations.length === 1 ? '' : 's'} discovered so far`}
               </p>
+            </div>
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search saved destinations"
+                aria-label="Search saved destinations"
+                className="w-full rounded-full bg-white py-2.5 pl-11 pr-10 text-sm text-slate-900 placeholder:text-slate-400 ring-1 ring-slate-200 hover:ring-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500/40 [&::-webkit-search-cancel-button]:hidden"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
 
           {filtered.length === 0 ? (
-            <EmptyState icon={Search} title="No matches" action={<Button variant="secondary" onClick={() => setQuery('')}>Clear search</Button>}>
-              Nothing matches “{query}”. Try a city or state name.
+            <EmptyState
+              icon={Search}
+              title="Not saved yet"
+              action={
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button icon={Compass} onClick={() => startDiscover(query.trim())}>Discover “{query.trim()}”</Button>
+                  <Button variant="secondary" onClick={() => setQuery('')}>Clear search</Button>
+                </div>
+              }
+            >
+              None of your saved destinations match “{query}”. Discover it to fetch and save its places.
             </EmptyState>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 sm:auto-rows-[18rem] 2xl:auto-rows-[22rem] gap-5 lg:gap-6">

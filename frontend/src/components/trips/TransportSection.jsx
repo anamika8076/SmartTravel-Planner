@@ -1,5 +1,7 @@
-import React from 'react';
-import { Bike, Bus, Car, ExternalLink, Pencil, Plane, TrainFront, Trash2, Route } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bike, Bus, Car, ExternalLink, Pencil, Plane, PlaneTakeoff, TrainFront, Trash2, Route } from 'lucide-react';
+import { Modal } from '../ui/Modal';
+import FlightSearch from './FlightSearch';
 import ItemsSection from './ItemsSection';
 import TransportForm from './TransportForm';
 import useTripItems from './useTripItems';
@@ -7,7 +9,7 @@ import Button from '../ui/Button';
 import { Badge } from '../ui/Feedback';
 import { transportApi } from '../../api/endpoints';
 import { TRANSPORT_TYPES, labelFor } from '../../constants/options';
-import { formatDate, formatDuration, formatINR, minutesBetween } from '../../utils/format';
+import { formatDuration, formatINR, minutesBetween, splitDateTime } from '../../utils/format';
 
 const ICONS = { flight: Plane, train: TrainFront, bus: Bus, car: Car, bike: Bike };
 
@@ -19,11 +21,6 @@ function bestIds(items) {
     .filter((i) => i.mins > 0)
     .sort((a, b) => a.mins - b.mins);
   return { cheapest: byCost[0]?.id, fastest: withTime[0]?.id };
-}
-
-function splitDateTime(value) {
-  const [date = '', time = ''] = String(value || '').split('T');
-  return { date: formatDate(date, { withYear: false }), time: time.slice(0, 5) || '—' };
 }
 
 function TransportItem({ option, best, onEdit, onDelete }) {
@@ -84,12 +81,26 @@ function TransportItem({ option, best, onEdit, onDelete }) {
   );
 }
 
-export default function TransportSection({ trip }) {
-  const state = useTripItems(transportApi, trip.id);
+export default function TransportSection({ trip, reloadKey, onChange }) {
+  const state = useTripItems(transportApi, trip.id, reloadKey, onChange);
   const best = bestIds(state.items);
+  const [searching, setSearching] = useState(false);
+
+  const saveFlight = async (body) => {
+    await state.create(body);
+  };
 
   return (
+    <>
+    <Modal open={searching} title="Search flights" onClose={() => setSearching(false)}>
+      {searching && <FlightSearch trip={trip} onSave={saveFlight} onDone={() => setSearching(false)} />}
+    </Modal>
     <ItemsSection
+      extraAction={
+        <Button size="sm" icon={PlaneTakeoff} onClick={() => setSearching(true)}>
+          Search flights
+        </Button>
+      }
       title="Getting there"
       icon={Route}
       tint="bg-sky-50 text-sky-600"
@@ -105,5 +116,6 @@ export default function TransportSection({ trip }) {
         <TransportForm trip={trip} option={item} onSubmit={onSubmit} onCancel={onCancel} />
       )}
     />
+    </>
   );
 }

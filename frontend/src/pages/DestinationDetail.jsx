@@ -10,7 +10,7 @@ import { Alert, Badge, Card, EmptyState } from '../components/ui/Feedback';
 import { destinationsApi, placesApi } from '../api/endpoints';
 import { placeMeta, mapsUrl } from '../components/destinations/placeMeta';
 import { prettify } from '../constants/options';
-import { formatDuration, formatINR } from '../utils/format';
+import { formatDuration, formatINR, titleCase } from '../utils/format';
 
 function PlaceCard({ place }) {
   const { icon: Icon, color } = placeMeta(place.category);
@@ -29,22 +29,20 @@ function PlaceCard({ place }) {
           <h3 className="font-semibold text-slate-900 leading-snug">{place.name}</h3>
           <p className="text-xs text-slate-500 mt-0.5">{prettify(place.category)}</p>
         </div>
-        {cost > 0 ? (
-          <span className="text-sm font-semibold text-slate-900 tabular-nums">{formatINR(cost)}</span>
-        ) : (
-          <Badge tone="emerald">Free</Badge>
-        )}
+        {cost > 0 && <span className="text-sm font-semibold text-slate-900 tabular-nums">{formatINR(cost)}</span>}
       </div>
       {place.description && <p className="mt-3 text-sm text-slate-600 leading-relaxed flex-1">{place.description}</p>}
       <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs text-slate-600">
-        {place.time_required != null ? (
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
-            {formatDuration(place.time_required)}
-          </span>
-        ) : (
-          <span />
-        )}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {/* 60 min is the backend's default for OpenStreetMap places, not a real estimate. */}
+          {place.time_required != null && Number(place.time_required) !== 60 && (
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              ~{formatDuration(place.time_required)}
+            </span>
+          )}
+          {!(cost > 0) && <span className="px-2 py-1 rounded-lg bg-slate-50 text-slate-500">Entry fee not listed</span>}
+        </div>
         {url && (
           <a
             href={url}
@@ -52,7 +50,7 @@ function PlaceCard({ place }) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-slate-800 hover:bg-orange-50 font-medium"
           >
-            <MapPin className="w-3.5 h-3.5" /> View on map <ExternalLink className="w-3 h-3" />
+            <MapPin className="w-3.5 h-3.5" /> Map <ExternalLink className="w-3 h-3" />
           </a>
         )}
       </div>
@@ -116,7 +114,16 @@ export default function DestinationDetail() {
   }
 
   const visible = category === 'all' ? places : places.filter((p) => p.category === category);
-  const totalMinutes = places.reduce((sum, p) => sum + (Number(p.time_required) || 0), 0);
+  // Visit times from OpenStreetMap are a 60-minute default, so we don't add
+  // them up. Show counts that are actually known instead.
+  const EAT = ['restaurant', 'cafe'];
+  const eatCount = places.filter((p) => EAT.includes(String(p.category).toLowerCase())).length;
+  const sightCount = places.length - eatCount;
+  const stats = [
+    { value: sightCount, label: sightCount === 1 ? 'sightseeing spot' : 'sightseeing spots' },
+    { value: eatCount, label: eatCount === 1 ? 'place to eat' : 'places to eat' },
+    { value: categories.length, label: categories.length === 1 ? 'category' : 'categories' },
+  ];
 
   return (
     <div className="space-y-8">
@@ -132,24 +139,16 @@ export default function DestinationDetail() {
                 <MapPin className="w-4 h-4" />
                 {[destination.state, destination.country].filter(Boolean).join(', ')}
               </p>
-              <h1 className="mt-1 font-serif text-5xl sm:text-7xl font-semibold tracking-tight text-shadow">{destination.name}</h1>
+              <h1 className="mt-1 font-serif text-5xl sm:text-7xl font-semibold tracking-tight text-shadow">{titleCase(destination.name)}</h1>
               {destination.description && <p className="mt-3 text-white/85 text-lg">{destination.description}</p>}
               {places.length > 0 && (
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <div className="px-4 py-2.5 rounded-2xl bg-white/10 backdrop-blur-md ring-1 ring-inset ring-white/20">
-                    <p className="text-xl font-bold tabular-nums">{places.length}</p>
-                    <p className="text-xs text-white/70">places to visit</p>
-                  </div>
-                  <div className="px-4 py-2.5 rounded-2xl bg-white/10 backdrop-blur-md ring-1 ring-inset ring-white/20">
-                    <p className="text-xl font-bold tabular-nums">{categories.length}</p>
-                    <p className="text-xs text-white/70">{categories.length === 1 ? 'category' : 'categories'}</p>
-                  </div>
-                  {totalMinutes > 0 && (
-                    <div className="px-4 py-2.5 rounded-2xl bg-white/10 backdrop-blur-md ring-1 ring-inset ring-white/20">
-                      <p className="text-xl font-bold tabular-nums">{formatDuration(totalMinutes)}</p>
-                      <p className="text-xs text-white/70">to see it all</p>
+                  {stats.map((s) => (
+                    <div key={s.label} className="px-4 py-2.5 rounded-2xl bg-white/10 backdrop-blur-md ring-1 ring-inset ring-white/20">
+                      <p className="text-xl font-bold tabular-nums">{s.value}</p>
+                      <p className="text-xs text-white/70">{s.label}</p>
                     </div>
-                  )}
+                  ))}
                 </div>
               )}
             </div>
@@ -162,7 +161,7 @@ export default function DestinationDetail() {
 
       {places.length === 0 ? (
         <EmptyState icon={MapPinned} title="No places listed yet">
-          Places for {destination.name} will show up here once they’re added.
+          Places for {titleCase(destination.name)} will show up here once they’re added.
         </EmptyState>
       ) : (
         <section className="space-y-5">

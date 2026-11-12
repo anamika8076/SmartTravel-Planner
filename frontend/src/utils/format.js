@@ -57,36 +57,60 @@ export function tripStatus(start, end) {
 }
 
 /*
- * Date-times are shown and edited exactly as the backend sends them
- * ("2026-12-15T08:00:00"), without converting time zones, so the value a
- * user enters is the value they see again.
+ * Date-times: the backend stores them in UTC and returns ISO strings with an
+ * offset ("2026-12-15T02:30:00Z"). We show and edit them in the browser's
+ * local time and send them back with the local offset.
  */
-export function toDateTimeInput(value) {
-  return value ? String(value).slice(0, 16) : '';
-}
+const pad2 = (n) => String(n).padStart(2, '0');
 
-export function formatDateTime(value) {
-  if (!value) return '—';
-  const [date, time = ''] = String(value).split('T');
-  return `${formatDate(date, { withYear: false })}, ${time.slice(0, 5)}`;
-}
-
-function naiveDateTime(value) {
+function toDate(value) {
   if (!value) return null;
-  const [date, time = '00:00'] = String(value).split('T');
-  const d = parseDate(date);
-  if (!d) return null;
-  const [h, min] = time.split(':').map(Number);
-  d.setHours(h || 0, min || 0);
-  return d;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** Minutes between two backend date-times, or null. */
+/** Backend date-time → value for <input type="datetime-local"> (local time). */
+export function toDateTimeInput(value) {
+  const d = toDate(value);
+  if (!d) return '';
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+/** <input type="datetime-local"> value → ISO 8601 with the local offset. */
+export function fromDateTimeInput(local) {
+  const d = toDate(local);
+  if (!d) return local;
+  const offset = -d.getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const abs = Math.abs(offset);
+  return `${local.length === 16 ? `${local}:00` : local}${sign}${pad2(Math.floor(abs / 60))}:${pad2(abs % 60)}`;
+}
+
+/** "15 Dec, 08:00" in local time. */
+export function formatDateTime(value) {
+  const d = toDate(value);
+  if (!d) return '—';
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}, ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+/** { date: "15 Dec", time: "08:00" } in local time. */
+export function splitDateTime(value) {
+  const d = toDate(value);
+  if (!d) return { date: '—', time: '—' };
+  return { date: `${d.getDate()} ${MONTHS[d.getMonth()]}`, time: `${pad2(d.getHours())}:${pad2(d.getMinutes())}` };
+}
+
+/** Minutes between two date-times, or null. */
 export function minutesBetween(start, end) {
-  const s = naiveDateTime(start);
-  const e = naiveDateTime(end);
+  const s = toDate(start);
+  const e = toDate(end);
   if (!s || !e) return null;
   return Math.round((e - s) / 60_000);
+}
+
+/** "09:00:00" → "09:00" */
+export function formatClock(value) {
+  return value ? String(value).slice(0, 5) : '—';
 }
 
 export function formatDuration(minutes) {
@@ -121,4 +145,21 @@ export function tripCountdown(start, end) {
   if (n === 0) return 'Starts today';
   if (n === 1) return 'Starts tomorrow';
   return `Starts in ${n} days`;
+}
+
+const SMALL_WORDS = new Set(['and', 'of', 'the', 'on', 'in']);
+
+/** "new delhi" → "New Delhi", "jammu and kashmir" → "Jammu and Kashmir". */
+export function titleCase(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .split(' ')
+    .map((word, i) =>
+      i > 0 && SMALL_WORDS.has(word)
+        ? word
+        : word.replace(/(^|[-'(])([a-z])/g, (m, sep, ch) => sep + ch.toUpperCase())
+    )
+    .join(' ');
 }

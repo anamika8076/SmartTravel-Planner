@@ -4,7 +4,7 @@ import { Alert } from '../ui/Feedback';
 import Button from '../ui/Button';
 import { TRANSPORT_TYPES } from '../../constants/options';
 import { splitFormErrors } from '../../api/client';
-import { toDateTimeInput } from '../../utils/format';
+import { fromDateTimeInput, toDateTimeInput } from '../../utils/format';
 
 const FIELDS = ['transport_type', 'provider', 'origin', 'destination', 'departure_time', 'arrival_time', 'estimated_cost', 'booking_url'];
 
@@ -61,8 +61,8 @@ export default function TransportForm({ trip, option, onSubmit, onCancel }) {
         provider: values.provider.trim(),
         origin: values.origin.trim(),
         destination: values.destination.trim(),
-        departure_time: values.departure_time,
-        arrival_time: values.arrival_time,
+        departure_time: fromDateTimeInput(values.departure_time),
+        arrival_time: fromDateTimeInput(values.arrival_time),
         estimated_cost: Number(values.estimated_cost).toFixed(2),
         booking_url: values.booking_url.trim(),
       });
