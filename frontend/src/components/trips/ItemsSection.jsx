@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, RotateCw } from 'lucide-react';
 import Button from '../ui/Button';
 import { Alert, Card } from '../ui/Feedback';
@@ -21,6 +21,7 @@ export default function ItemsSection({
   emptyText,
   tint = 'bg-orange-50 text-orange-700',
   extraAction,
+  openAddSignal = 0,
 }) {
   const { items, loading, error, reload, create, update, remove } = state;
   const [editing, setEditing] = useState(null); // null | 'new' | item
@@ -29,6 +30,11 @@ export default function ItemsSection({
   const [deleteError, setDeleteError] = useState('');
 
   const closeForm = () => setEditing(null);
+
+  // Lets a parent open the "add" form (e.g. from an empty hotel search).
+  useEffect(() => {
+    if (openAddSignal > 0) setEditing('new');
+  }, [openAddSignal]);
 
   const handleSubmit = async (body) => {
     if (editing === 'new') await create(body);

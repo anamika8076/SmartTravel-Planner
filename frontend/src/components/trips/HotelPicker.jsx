@@ -116,10 +116,11 @@ function HotelRow({ hotel, tripId, onAdd, added }) {
  * asks for the nightly price the traveller was actually quoted.
  * Pass `hotels` to show a given list, or omit it to fetch by `destination`.
  */
-export default function HotelPicker({ tripId, destination, hotels: given, onAdd, emptyText }) {
+export default function HotelPicker({ tripId, destination, hotels: given, onAdd, emptyText, onManual }) {
   const [hotels, setHotels] = useState(given ? given.map(normalizeHotel) : null);
   const [error, setError] = useState('');
   const [added, setAdded] = useState({});
+  const [shown, setShown] = useState(8);
 
   useEffect(() => {
     if (given) return undefined;
@@ -141,19 +142,38 @@ export default function HotelPicker({ tripId, destination, hotels: given, onAdd,
   if (error) return <Alert>{error}</Alert>;
   if (!hotels) return <ListSkeleton rows={3} />;
   if (hotels.length === 0) {
-    return <p className="text-sm text-slate-500 text-center py-6">{emptyText || `No hotels saved for ${destination} yet.`}</p>;
+    return (
+      <div className="text-center py-8">
+        <div className="mx-auto w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
+          <BedDouble className="w-6 h-6" />
+        </div>
+        <p className="mt-3 font-semibold text-slate-900">No hotels found</p>
+        <p className="mt-1 text-sm text-slate-500 max-w-xs mx-auto">
+          {emptyText || `No hotels are saved for ${destination} yet. You can add the place you’re staying at yourself.`}
+        </p>
+        {onManual && (
+          <Button size="sm" icon={Plus} onClick={onManual} className="mt-4">Add your own stay</Button>
+        )}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-slate-500">
-        From OpenStreetMap — these listings have no live prices or availability. Add one with the price you were quoted.
-      </p>
       <ul className="space-y-2">
-        {hotels.map((h) => (
+        {hotels.slice(0, shown).map((h) => (
           <HotelRow key={h.id} hotel={h} tripId={tripId} onAdd={handleAdd} added={added[h.id]} />
         ))}
       </ul>
+      {hotels.length > shown && (
+        <button
+          type="button"
+          onClick={() => setShown((n) => n + 12)}
+          className="w-full py-2.5 rounded-2xl text-sm font-medium text-slate-600 bg-stone-100 hover:bg-orange-50 hover:text-orange-700 transition-colors"
+        >
+          Show more hotels ({hotels.length - shown} more)
+        </button>
+      )}
     </div>
   );
 }

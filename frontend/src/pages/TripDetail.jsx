@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CalendarDays, CalendarClock, MapPinned, Pencil, Trash2, Users, Wallet, ArrowLeft } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -10,7 +10,8 @@ import { STATUS_BADGE } from '../components/trips/TripCard';
 import { TravelModeIcon } from '../components/trips/travelModes';
 import TransportSection from '../components/trips/TransportSection';
 import AccommodationSection from '../components/trips/AccommodationSection';
-import { tripsApi } from '../api/endpoints';
+import PlanSection from '../components/trips/PlanSection';
+import { accommodationsApi, tripsApi } from '../api/endpoints';
 import { TRAVEL_MODES, labelFor } from '../constants/options';
 import { formatDateRange, formatINR, nightsBetween, tripCountdown, tripStatus } from '../utils/format';
 import useTrip from './useTrip';
@@ -77,6 +78,15 @@ export default function TripDetail() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+
+  // Bumped when transport/stays change, so sections refresh and the plan knows it's out of date.
+  const [reloadKey, setReloadKey] = useState(0);
+  const bump = useCallback(() => setReloadKey((k) => k + 1), []);
+
+  const addAccommodationFromPlan = async (body) => {
+    await accommodationsApi.create(body);
+    bump();
+  };
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -186,9 +196,11 @@ export default function TripDetail() {
       </Card>
 
       <div className="grid lg:grid-cols-2 gap-6 items-stretch">
-        <TransportSection trip={trip} />
-        <AccommodationSection trip={trip} />
+        <TransportSection trip={trip} reloadKey={reloadKey} onChange={bump} />
+        <AccommodationSection trip={trip} reloadKey={reloadKey} onChange={bump} />
       </div>
+
+      <PlanSection trip={trip} reloadKey={reloadKey} onAccommodationAdded={addAccommodationFromPlan} />
 
 
       <ConfirmDialog

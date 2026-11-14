@@ -75,6 +75,7 @@ function StayItem({ stay, nights, best, onEdit, onDelete }) {
 export default function AccommodationSection({ trip, reloadKey, onChange }) {
   const state = useTripItems(accommodationsApi, trip.id, reloadKey, onChange);
   const [finding, setFinding] = useState(false);
+  const [manualOpen, setManualOpen] = useState(0); // bump to open the manual "Add" form
 
   const addHotel = async (body) => {
     await state.create(body);
@@ -87,7 +88,15 @@ export default function AccommodationSection({ trip, reloadKey, onChange }) {
     <Modal open={finding} title={`Hotels in ${trip.destination}`} onClose={() => setFinding(false)}>
       {finding && (
         <>
-          <HotelPicker tripId={trip.id} destination={trip.destination} onAdd={addHotel} />
+          <HotelPicker
+            tripId={trip.id}
+            destination={trip.destination}
+            onAdd={addHotel}
+            onManual={() => {
+              setFinding(false);
+              setManualOpen((n) => n + 1);
+            }}
+          />
           <div className="flex justify-end pt-4">
             <Button variant="secondary" onClick={() => setFinding(false)}>Done</Button>
           </div>
@@ -95,6 +104,7 @@ export default function AccommodationSection({ trip, reloadKey, onChange }) {
       )}
     </Modal>
     <ItemsSection
+      openAddSignal={manualOpen}
       extraAction={
         <Button size="sm" icon={Search} onClick={() => setFinding(true)}>
           Find hotels

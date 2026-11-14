@@ -32,12 +32,22 @@ export const accommodationsApi = resource('/api/accommodations/', { auth: true }
 export const destinationsApi = resource('/api/destinations/', { auth: false });
 export const placesApi = resource('/api/places/', { auth: false });
 
-// Planner: one optimal plan per trip.
-// generate → full result (transport, stay, recommendations, costs, itinerary).
-// latest   → saved plan with itinerary items only (404 if none yet).
+// Planner: one plan per trip. generate and latest return the same full plan
+// JSON; each itinerary edit returns { message, plan } with the updated plan.
+const unwrapPlan = (data) => data?.response_data ?? data;
+
 export const plannerApi = {
-  generate: (tripId) => request(`/api/planner/trips/${tripId}/generate/`, { method: 'POST', body: {}, auth: true }),
-  latest: (tripId) => request(`/api/planner/trips/${tripId}/latest/`, { auth: true }),
+  generate: (tripId) =>
+    request(`/api/planner/trips/${tripId}/generate/`, { method: 'POST', body: {}, auth: true }).then(unwrapPlan),
+  latest: (tripId) => request(`/api/planner/trips/${tripId}/latest/`, { auth: true }).then(unwrapPlan),
+  addItem: (tripId, body) =>
+    request(`/api/planner/trips/${tripId}/itinerary/items/`, { method: 'POST', body, auth: true }).then((d) => d.plan),
+  deleteItem: (tripId, itemId) =>
+    request(`/api/planner/trips/${tripId}/itinerary/items/${itemId}/`, { method: 'DELETE', auth: true }).then((d) => d.plan),
+  moveItem: (tripId, itemId, body) =>
+    request(`/api/planner/trips/${tripId}/itinerary/items/${itemId}/move/`, { method: 'PATCH', body, auth: true }).then((d) => d.plan),
+  reorderDay: (tripId, day, itemIds) =>
+    request(`/api/planner/trips/${tripId}/itinerary/reorder/`, { method: 'PATCH', body: { day, item_ids: itemIds }, auth: true }).then((d) => d.plan),
 };
 
 // Live flight offers (provider can be unavailable → 502).

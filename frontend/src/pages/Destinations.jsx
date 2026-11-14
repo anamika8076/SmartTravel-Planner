@@ -106,7 +106,7 @@ export default function Destinations() {
             Find your next <span className="italic text-orange-300">favourite place</span>
           </h1>
           <p className="mt-3 text-white/85 max-w-lg text-lg">
-            Enter any Indian city — we’ll fetch its attractions, cafés, restaurants and hotels from OpenStreetMap and save it to your destinations.
+            Enter any Indian city — we’ll find its attractions, cafés and restaurants and save it to your destinations.
           </p>
           <div className="mt-7 max-w-2xl">
             <DiscoverDestination

@@ -56,7 +56,7 @@ export default function DiscoverDestination({ initialCity = '', initialState = '
       });
     } catch (err) {
       if (err.status === 404) setError(`No places were found for “${titleCase(city)}”. Check the spelling, or try a nearby larger town.`);
-      else if (err.status >= 500) setError('The map service (OpenStreetMap) is busy right now. Please try again in a minute.');
+      else if (err.status >= 500) setError('The search service is busy right now. Please try again in a minute.');
       else setError(err.message);
       setLoading(false);
     }
@@ -106,7 +106,7 @@ export default function DiscoverDestination({ initialCity = '', initialState = '
           <p role="alert" className="text-sm text-white bg-rose-500/80 backdrop-blur rounded-2xl px-4 py-2.5">{error}</p>
         )}
         {loading && !error && (
-          <p className="text-sm text-white/80">Looking it up on OpenStreetMap — this can take up to a minute…</p>
+          <p className="text-sm text-white/80">Finding places — this can take up to a minute…</p>
         )}
       </form>
     );
@@ -115,7 +115,7 @@ export default function DiscoverDestination({ initialCity = '', initialState = '
   return (
     <form onSubmit={submit} noValidate className="space-y-4">
       <p className="text-sm text-slate-600">
-        We’ll look the place up on OpenStreetMap and save its attractions, cafés, restaurants and hotels. This can take up to a minute.
+        We’ll find this place’s attractions, cafés and restaurants and save them. This can take up to a minute.
       </p>
       <Alert>{error}</Alert>
       <div className="grid sm:grid-cols-2 gap-4">
