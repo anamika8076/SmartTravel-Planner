@@ -8,6 +8,17 @@ import { flightsApi } from '../../api/endpoints';
 import { airportCodeFor } from '../../constants/airports';
 import { formatDuration, formatINR, minutesBetween, splitDateTime, todayISO } from '../../utils/format';
 
+/**
+ * The flight provider gives local airport times without a time zone
+ * ("2027-01-01T07:10:00"). Django would read those as UTC and shift them by
+ * 5½ hours, so we attach India's offset (+05:30) when none is present.
+ */
+function withAirportOffset(value) {
+  if (!value) return '';
+  const v = String(value);
+  return /(Z|[+-]\d{2}:?\d{2})$/.test(v) ? v : `${v.length === 16 ? `${v}:00` : v}+05:30`;
+}
+
 /** Turn one provider offer into the fields we display and save. */
 function normalizeOffer(offer, index) {
   const outbound = offer?.outbound || {};
@@ -22,10 +33,10 @@ function normalizeOffer(offer, index) {
     flightNo: first.flight_no || '',
     origin: first.origin || '',
     destination: last.destination || '',
-    departure: first.departure || '',
-    arrival: last.arrival || '',
+    departure: withAirportOffset(first.departure),
+    arrival: withAirportOffset(last.arrival),
     stops: Number(outbound.stopovers ?? Math.max(segments.length - 1, 0)) || 0,
-    minutes: durationSeconds ? Math.round(durationSeconds / 60) : minutesBetween(first.departure, last.arrival),
+    minutes: durationSeconds ? Math.round(durationSeconds / 60) : minutesBetween(withAirportOffset(first.departure), withAirportOffset(last.arrival)),
     price: Number(offer?.price),
     currency: String(offer?.currency || '').toUpperCase(),
     bookingUrl: offer?.booking_url || '',
@@ -82,7 +93,8 @@ export default function FlightSearch({ trip, onSave, onDone }) {
       const data = await flightsApi.search({ ...form, adults: Number(form.adults) });
       const list = (Array.isArray(data?.offers) ? data.offers : Array.isArray(data) ? data : [])
         .map(normalizeOffer)
-        .filter((o) => o.usable);
+        .filter((o) => o.usable)
+        .filter((o, i, all) => all.findIndex((x) => x.flightNo === o.flightNo && x.departure === o.departure && x.price === o.price) === i);
       setOffers(list);
     } catch (err) {
       setError(err.message);

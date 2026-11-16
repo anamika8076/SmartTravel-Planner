@@ -125,7 +125,7 @@ export default function Trips() {
 
   return (
     <div className="space-y-8">
-      <Hero src={PHOTOS.lakeBow} name="home">
+      <Hero src={PHOTOS.himalaya} name="home">
         <div className="flex-1 grid lg:grid-cols-[1fr_minmax(0,21rem)] gap-8 items-end">
           <div className="space-y-6">
             <div>

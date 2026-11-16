@@ -1,19 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { lockScroll } from '../../utils/scrollLock';
 import { X } from 'lucide-react';
 import Button from './Button';
 
 export function Modal({ open, title, onClose, children, footer }) {
+  // Keep the latest onClose without re-running the effect on every render.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => e.key === 'Escape' && onClose?.();
+    const onKey = (e) => e.key === 'Escape' && closeRef.current?.();
     document.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlock = lockScroll();
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
+      unlock();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

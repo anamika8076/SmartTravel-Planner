@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lockScroll } from '../../utils/scrollLock';
 import {
   AlertTriangle,
   ArrowDown,
@@ -133,7 +134,7 @@ function CostSummary({ cost, budgetFallback }) {
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">What we’ve counted</p>
         <ul className="divide-y divide-slate-100">
-          <CostRow icon={Route} tint="bg-sky-50 text-sky-600" label="Travel there" value={cost.transport}
+          <CostRow icon={Route} tint="bg-sky-50 text-sky-600" label="Transport" value={cost.transport}
             missing={transportMissing} missingText="Add a transport option under “Getting there”." />
           <CostRow icon={BedDouble} tint="bg-orange-50 text-orange-600" label="Stay" value={cost.accommodation}
             missing={stayMissing} missingText="Add a hotel with its price under “Where to stay”." />
@@ -382,7 +383,7 @@ function AddActivity({ trip, day, scheduledNames, onSubmit, onCancel }) {
       .then((list) => {
         const dest = list.find((d) => d.name?.toLowerCase() === String(trip.destination).trim().toLowerCase());
         const usable = (dest?.places || []).filter(
-          (p) => !NON_ITINERARY.has(String(p.category).toLowerCase()) && !scheduledNames.has(p.name)
+          (p) => !NON_ITINERARY.has(String(p.category).toLowerCase()) && !scheduledNames.has(`${p.name}|${Number(p.latitude)}|${Number(p.longitude)}`)
         );
         if (alive) setPlaces(usable);
       })
@@ -425,9 +426,20 @@ function AddActivity({ trip, day, scheduledNames, onSubmit, onCancel }) {
       {!places ? (
         <Skeleton className="h-48 !rounded-2xl" />
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-slate-500 text-center py-6">
-          {places.length === 0 ? `No more sightseeing places saved for ${titleCase(trip.destination)}.` : 'No places match your search.'}
-        </p>
+        places.length === 0 ? (
+          <div className="text-center py-6 px-4">
+            <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <p className="mt-3 font-semibold text-slate-900">Every sightseeing spot is already in your plan</p>
+            <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">
+              All the sightseeing places we have for {titleCase(trip.destination)} are already on one of your days.
+              You can move a stop to Day {day} from another day instead.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 text-center py-6">No places match your search.</p>
+        )
       ) : (
         <ul className="max-h-64 overflow-y-auto space-y-1 -mx-1 px-1">
           {filtered.map((p) => {
@@ -523,17 +535,21 @@ function Dining({ items }) {
 /* ------------------------------------------------------------------ */
 
 function PlanModal({ open, onClose, closeOnEscape, header, children }) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const escRef = useRef(closeOnEscape);
+  escRef.current = closeOnEscape;
+
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => e.key === 'Escape' && closeOnEscape && onClose();
+    const onKey = (e) => e.key === 'Escape' && escRef.current && closeRef.current();
     document.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlock = lockScroll();
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
+      unlock();
     };
-  }, [open, onClose, closeOnEscape]);
+  }, [open]);
 
   if (!open) return null;
   return (
@@ -674,7 +690,10 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
     setAdding(false);
   };
 
-  const scheduledNames = useMemo(() => new Set(itinerary.map((i) => i.place).filter(Boolean)), [itinerary]);
+  const scheduledNames = useMemo(
+    () => new Set(itinerary.filter((i) => i.place).map((i) => `${i.place}|${Number(i.latitude)}|${Number(i.longitude)}`)),
+    [itinerary]
+  );
   const schedule = plan?.daily_schedule?.find((d) => d.day === activeDay);
   const cost = plan?.estimated_cost || {};
   const status = STATUS[cost.budget_status] || STATUS.incomplete;

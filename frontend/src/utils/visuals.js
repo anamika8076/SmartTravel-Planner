@@ -26,26 +26,20 @@ export const PHOTOS = {
   mumbaiCst: u('1566552881560-0be862a7c445'),
 };
 
-// Keyword → photo. Checked against the destination name first, then its
-// state/description, so "Kasol, Himachal Pradesh" still gets mountains.
+// Keyword → photo. Only photos that actually show the place (or its region)
+// are used. A place with no matching photo gets a plain colour background
+// instead of an unrelated picture.
 const RULES = [
   [['manali', 'solang', 'kullu', 'kasol', 'shimla', 'himachal', 'spiti', 'dharamshala', 'mcleod'], PHOTOS.snowTrek],
-  [['leh', 'ladakh', 'kashmir', 'gulmarg', 'srinagar', 'sikkim', 'gangtok', 'darjeeling', 'nepal'], PHOTOS.stupaPeaks],
-  [['rishikesh', 'uttarakhand', 'nainital', 'mussoorie', 'auli', 'kedarnath', 'dehradun'], PHOTOS.himalaya],
-  [['goa', 'gokarna', 'varkala', 'pondicherry', 'puducherry'], PHOTOS.goaBeach],
-  [['andaman', 'lakshadweep', 'maldives', 'island'], PHOTOS.islandVillas],
+  [['leh', 'ladakh'], PHOTOS.stupaPeaks],
+  [['rishikesh', 'uttarakhand', 'nainital', 'mussoorie', 'landour', 'auli', 'kedarnath', 'dehradun'], PHOTOS.himalaya],
+  [['goa', 'panaji', 'panjim', 'vasco', 'margao', 'madgaon', 'calangute', 'baga', 'anjuna', 'candolim', 'mapusa', 'palolem'], PHOTOS.goaBeach],
   [['jaipur', 'pink city'], PHOTOS.hawaMahal],
-  [['rajasthan', 'udaipur', 'jodhpur', 'jaisalmer', 'amber', 'fort'], PHOTOS.amberFort],
-  [['agra', 'taj'], PHOTOS.tajMahal],
+  [['amber'], PHOTOS.amberFort],
+  [['agra', 'taj mahal'], PHOTOS.tajMahal],
   [['delhi'], PHOTOS.indiaGate],
   [['mumbai', 'bombay'], PHOTOS.gatewayOfIndia],
-  [['kerala', 'munnar', 'ooty', 'coorg', 'kodaikanal', 'wayanad'], PHOTOS.greenHills],
-  [['lake', 'udaipur', 'srinagar'], PHOTOS.lakeBoat],
-  [['beach', 'coast', 'sea'], PHOTOS.sunsetBeach],
-  [['hill', 'mountain', 'valley', 'peak', 'trek', 'snow'], PHOTOS.pineValley],
 ];
-
-const FALLBACKS = [PHOTOS.cloudPeaks, PHOTOS.lakeBow, PHOTOS.pineValley, PHOTOS.greenHills, PHOTOS.lakeBoat, PHOTOS.sunsetBeach];
 
 function hash(text) {
   let h = 0;
@@ -61,13 +55,9 @@ function matchRule(text) {
   return null;
 }
 
-/** Base photo URL for a place. `extra` can hold state/description for better matching. */
+/** Photo URL for a place, or null when we have no photo of it. */
 export function photoFor(name, extra = '') {
-  return (
-    matchRule(String(name || '')) ||
-    matchRule(String(extra || '')) ||
-    FALLBACKS[hash(String(name || '').toLowerCase()) % FALLBACKS.length]
-  );
+  return matchRule(String(name || '')) || matchRule(String(extra || '')) || null;
 }
 
 /** Sized Unsplash URL. */

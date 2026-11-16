@@ -97,7 +97,7 @@ export default function Destinations() {
 
   return (
     <div className="space-y-10">
-      <Hero src={PHOTOS.cloudPeaks} name="explore">
+      <Hero src={PHOTOS.stupaPeaks} name="explore">
         <div className="flex-1 flex flex-col justify-end max-w-2xl">
           <span className="self-start px-3 py-1 rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/25 text-xs font-semibold uppercase tracking-wider">
             Discover new destinations

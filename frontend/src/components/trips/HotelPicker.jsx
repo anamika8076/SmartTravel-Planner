@@ -3,7 +3,7 @@ import { BedDouble, Check, ExternalLink, MapPin, Phone, Plus } from 'lucide-reac
 import { Alert, Badge } from '../ui/Feedback';
 import { ListSkeleton } from '../ui/Skeleton';
 import Button from '../ui/Button';
-import { hotelsApi } from '../../api/endpoints';
+import { accommodationsApi, hotelsApi } from '../../api/endpoints';
 import { prettify } from '../../constants/options';
 
 /** Normalises hotels from /hotels/search/ (nested address) and planner recommendations (flat). */
@@ -120,6 +120,29 @@ export default function HotelPicker({ tripId, destination, hotels: given, onAdd,
   const [hotels, setHotels] = useState(given ? given.map(normalizeHotel) : null);
   const [error, setError] = useState('');
   const [added, setAdded] = useState({});
+  const [savedNames, setSavedNames] = useState(new Set());
+
+  // Mark hotels already saved on this trip (by hotel id, or by name for manual stays).
+  useEffect(() => {
+    if (!tripId) return undefined;
+    let alive = true;
+    accommodationsApi
+      .list()
+      .then((list) => {
+        if (!alive) return;
+        const mine = list.filter((a) => String(a.trip) === String(tripId));
+        setAdded((prev) => {
+          const next = { ...prev };
+          mine.forEach((a) => a.hotel && (next[a.hotel] = true));
+          return next;
+        });
+        setSavedNames(new Set(mine.map((a) => String(a.name || '').trim().toLowerCase())));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [tripId]);
   const [shown, setShown] = useState(8);
 
   useEffect(() => {
@@ -162,7 +185,7 @@ export default function HotelPicker({ tripId, destination, hotels: given, onAdd,
     <div className="space-y-2">
       <ul className="space-y-2">
         {hotels.slice(0, shown).map((h) => (
-          <HotelRow key={h.id} hotel={h} tripId={tripId} onAdd={handleAdd} added={added[h.id]} />
+          <HotelRow key={h.id} hotel={h} tripId={tripId} onAdd={handleAdd} added={added[h.id] || savedNames.has(String(h.name || '').trim().toLowerCase())} />
         ))}
       </ul>
       {hotels.length > shown && (

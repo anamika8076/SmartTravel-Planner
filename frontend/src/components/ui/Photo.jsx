@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { gradientFor, photoFor, sized } from '../../utils/visuals';
 
 /**
@@ -8,14 +9,22 @@ import { gradientFor, photoFor, sized } from '../../utils/visuals';
 export default function Photo({ name, extra, src, width = 800, height, className = '', imgClassName = '', overlay = true, eager = false }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const url = sized(src || photoFor(name, extra), width, height);
+  const base = src || photoFor(name, extra);
+  const url = base ? sized(base, width, height) : null;
 
   return (
     <div className={`absolute inset-0 overflow-hidden bg-gradient-to-br ${gradientFor(name)} ${className}`} aria-hidden="true">
-      {!failed && (
+      {/* No photo of this place: plain colour with a soft pattern, never an unrelated picture. */}
+      {!url && (
+        <>
+          <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(white_1px,transparent_1px)] [background-size:18px_18px]" />
+          <MapPin className="absolute -right-6 -bottom-8 w-48 h-48 text-white/10" strokeWidth={1} />
+        </>
+      )}
+      {url && !failed && (
         <img
           src={url}
-          srcSet={`${url} 1x, ${sized(src || photoFor(name, extra), width * 2, height ? height * 2 : undefined)} 2x`}
+          srcSet={`${url} 1x, ${sized(base, width * 2, height ? height * 2 : undefined)} 2x`}
           alt=""
           loading={eager ? 'eager' : 'lazy'}
           onLoad={() => setLoaded(true)}
