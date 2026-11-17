@@ -93,7 +93,7 @@ export default function TransportSection({ trip, reloadKey, onChange }) {
   return (
     <>
     <Modal open={searching} title="Search flights" onClose={() => setSearching(false)}>
-      {searching && <FlightSearch trip={trip} onSave={saveFlight} onDone={() => setSearching(false)} />}
+      {searching && <FlightSearch trip={trip} onSave={saveFlight} savedOptions={state.items} onDone={() => setSearching(false)} />}
     </Modal>
     <ItemsSection
       extraAction={

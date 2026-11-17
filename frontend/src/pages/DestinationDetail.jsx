@@ -127,7 +127,7 @@ export default function DestinationDetail() {
 
   return (
     <div className="space-y-8">
-      <Hero name={destination.name} extra={`${destination.state || ''} ${destination.description || ''}`} minHeight="min-h-[24rem] sm:min-h-[30rem]">
+      <Hero name={destination.name} state={destination.state} minHeight="min-h-[24rem] sm:min-h-[30rem]">
         <div className="flex-1 flex flex-col justify-between gap-8">
           <Link to="/destinations" className="inline-flex items-center gap-1.5 text-sm text-white/80 hover:text-white">
             <ArrowLeft className="w-4 h-4" />

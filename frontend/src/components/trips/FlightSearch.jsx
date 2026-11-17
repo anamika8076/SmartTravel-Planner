@@ -51,7 +51,23 @@ function formatPrice(offer) {
   return `${offer.currency} ${offer.price.toLocaleString('en-IN')}`;
 }
 
-export default function FlightSearch({ trip, onSave, onDone }) {
+/** "6E 2164" / "6E2164" → "6E2164" so saved and searched flights compare equal. */
+const flightCode = (v) => String(v || '').replace(/\s+/g, '').toUpperCase();
+
+/** Same flight number on the same day (tolerates small time differences). */
+function isAlreadySaved(offer, savedOptions) {
+  const code = flightCode(offer.flightNo);
+  const day = String(offer.departure).slice(0, 10);
+  return savedOptions.some((t) => {
+    if (t.transport_type !== 'flight') return false;
+    const sameFlight = code && flightCode(t.provider).includes(code);
+    const sameTime = new Date(t.departure_time).getTime() === new Date(offer.departure).getTime();
+    const sameDay = new Date(t.departure_time).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) === day;
+    return (sameFlight && (sameTime || sameDay)) || (sameTime && Number(t.estimated_cost) === offer.price);
+  });
+}
+
+export default function FlightSearch({ trip, onSave, onDone, savedOptions = [] }) {
   const [form, setForm] = useState({
     origin: airportCodeFor(trip.source),
     destination: airportCodeFor(trip.destination),
@@ -180,7 +196,7 @@ export default function FlightSearch({ trip, onSave, onDone }) {
                       </div>
                       <div className="text-right flex-shrink-0 space-y-1.5">
                         <p className="font-bold text-slate-900 tabular-nums">{formatPrice(o)}</p>
-                        {saved[o.key] ? (
+                        {saved[o.key] || isAlreadySaved(o, savedOptions) ? (
                           <Badge tone="emerald"><Check className="w-3 h-3" /> Saved</Badge>
                         ) : (
                           <Button size="sm" onClick={() => save(o)} loading={saving === o.key} disabled={!canSave || !!saving} title={canSave ? 'Save to this trip' : 'Only INR prices can be saved'}>

@@ -23,7 +23,7 @@ function DestinationCard({ d, index, featured }) {
     >
       <Photo
         name={d.name}
-        extra={`${d.state || ''} ${d.description || ''}`}
+        state={d.state}
         width={featured ? 1000 : 600}
         height={featured ? 900 : 600}
         imgClassName="group-hover:scale-105 !transition-[transform,opacity] !duration-700"

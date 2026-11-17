@@ -690,6 +690,20 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
     setAdding(false);
   };
 
+  // Backend warnings, minus technical ones that don't matter to the traveller.
+  const warnings = useMemo(() => {
+    const list = plan?.warnings || [];
+    return list
+      .map((w) => {
+        if (/^flight search skipped/i.test(w) || /flight provider is temporarily unavailable/i.test(w) || /no usable inr flight offers/i.test(w)) {
+          // Irrelevant when a transport option is already in the plan.
+          return plan?.transport ? null : 'We couldn’t look up flights automatically for this trip. Use “Search flights” or add your transport manually.';
+        }
+        return w;
+      })
+      .filter((w, i, all) => w && all.indexOf(w) === i);
+  }, [plan]);
+
   const scheduledNames = useMemo(
     () => new Set(itinerary.filter((i) => i.place).map((i) => `${i.place}|${Number(i.latitude)}|${Number(i.longitude)}`)),
     [itinerary]
@@ -929,15 +943,15 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
               </ul>
             </Card>
 
-            {plan.warnings?.length > 0 && (
+            {warnings.length > 0 && (
               <details className="rounded-3xl bg-amber-50/70 ring-1 ring-amber-200 p-5 group">
                 <summary className="flex items-center gap-2 text-sm font-semibold text-amber-900 cursor-pointer list-none">
-                  <AlertTriangle className="w-4 h-4" /> Things to know ({plan.warnings.length})
+                  <AlertTriangle className="w-4 h-4" /> Things to know ({warnings.length})
                   <span className="ml-auto text-xs font-normal text-amber-700 group-open:hidden">Show</span>
                   <span className="ml-auto text-xs font-normal text-amber-700 hidden group-open:inline">Hide</span>
                 </summary>
                 <ul className="mt-3 space-y-1.5 text-sm text-amber-900/90 list-disc pl-6">
-                  {plan.warnings.map((w) => <li key={w}>{w}</li>)}
+                  {warnings.map((w) => <li key={w}>{w}</li>)}
                 </ul>
               </details>
             )}

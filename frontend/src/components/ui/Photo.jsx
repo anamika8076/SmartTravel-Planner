@@ -1,21 +1,49 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { gradientFor, photoFor, sized } from '../../utils/visuals';
+import { findCityPhoto } from '../../utils/cityPhotos';
 
 /**
- * Destination photo that fills its (relative) parent. A colour gradient sits
- * underneath, so a slow or failed image still looks intentional.
+ * Photo that fills its (relative) parent.
+ * - `src`: a fixed photo (page banners).
+ * - `name` (+ optional `state`): a real photo of that city from its Wikipedia
+ *   article; falls back to a curated regional photo, then to a plain colour.
+ * Never shows an unrelated picture.
  */
-export default function Photo({ name, extra, src, width = 800, height, className = '', imgClassName = '', overlay = true, eager = false }) {
+export default function Photo({ name, state, src, width = 800, height, className = '', imgClassName = '', overlay = true, eager = false }) {
+  const [cityUrl, setCityUrl] = useState(undefined); // undefined = still looking
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const base = src || photoFor(name, extra);
-  const url = base ? sized(base, width, height) : null;
+
+  useEffect(() => {
+    if (src || !name) return undefined;
+    let alive = true;
+    setCityUrl(undefined);
+    setLoaded(false);
+    setFailed(false);
+    findCityPhoto(name, state, Math.min(width * 2, 1600)).then((url) => alive && setCityUrl(url));
+    return () => {
+      alive = false;
+    };
+  }, [src, name, state, width]);
+
+  let url = null;
+  let srcSet;
+  if (src) {
+    url = sized(src, width, height);
+    srcSet = `${url} 1x, ${sized(src, width * 2, height ? height * 2 : undefined)} 2x`;
+  } else if (cityUrl) {
+    url = cityUrl;
+  } else if (cityUrl === null) {
+    const regional = photoFor(name, state);
+    if (regional) url = sized(regional, width, height);
+  }
+
+  const showPlain = !url || failed;
 
   return (
     <div className={`absolute inset-0 overflow-hidden bg-gradient-to-br ${gradientFor(name)} ${className}`} aria-hidden="true">
-      {/* No photo of this place: plain colour with a soft pattern, never an unrelated picture. */}
-      {!url && (
+      {showPlain && cityUrl !== undefined && (
         <>
           <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(white_1px,transparent_1px)] [background-size:18px_18px]" />
           <MapPin className="absolute -right-6 -bottom-8 w-48 h-48 text-white/10" strokeWidth={1} />
@@ -23,9 +51,11 @@ export default function Photo({ name, extra, src, width = 800, height, className
       )}
       {url && !failed && (
         <img
+          key={url}
           src={url}
-          srcSet={`${url} 1x, ${sized(base, width * 2, height ? height * 2 : undefined)} 2x`}
+          srcSet={srcSet}
           alt=""
+          referrerPolicy="no-referrer"
           loading={eager ? 'eager' : 'lazy'}
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
