@@ -24,7 +24,7 @@ function validate(v) {
   if (!v.accommodation_type) e.accommodation_type = 'Choose a type.';
   if (!v.location.trim()) e.location = 'Required.';
   const price = Number(v.price_per_night);
-  if (v.price_per_night === '' || Number.isNaN(price) || price < 0) e.price_per_night = 'Enter a price (0 or more).';
+  if (v.price_per_night === '' || !Number.isFinite(price) || price < 0.01) e.price_per_night = 'Enter a price greater than 0.';
   if (v.rating !== '') {
     const r = Number(v.rating);
     if (Number.isNaN(r) || r < 0 || r > 5) e.rating = 'Rating must be between 0 and 5.';
@@ -77,7 +77,7 @@ export default function AccommodationForm({ trip, stay, onSubmit, onCancel }) {
       <div className="grid grid-cols-2 gap-4">
         <SelectField id="accommodation_type" label="Type" options={ACCOMMODATION_TYPES} value={values.accommodation_type} onChange={set('accommodation_type')} error={errors.accommodation_type} />
         <TextField id="location" label="Location" placeholder="e.g. Old Manali" value={values.location} onChange={set('location')} error={errors.location} />
-        <TextField id="price_per_night" label="Price / night (₹)" type="number" min="0" step="any" value={values.price_per_night} onChange={set('price_per_night')} error={errors.price_per_night} />
+        <TextField id="price_per_night" label="Price / night (₹)" type="number" min="0.01" step="0.01" value={values.price_per_night} onChange={set('price_per_night')} error={errors.price_per_night} />
         <TextField id="rating" label="Rating (0–5)" type="number" min="0" max="5" step="0.1" value={values.rating} onChange={set('rating')} error={errors.rating} hint="Optional" />
       </div>
       <TextField id="booking_url" label="Booking link" type="url" placeholder="https://…" value={values.booking_url} onChange={set('booking_url')} error={errors.booking_url} hint="Optional" />
