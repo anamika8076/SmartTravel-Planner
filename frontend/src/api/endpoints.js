@@ -37,8 +37,8 @@ export const placesApi = resource('/api/places/', { auth: false });
 const unwrapPlan = (data) => data?.response_data ?? data;
 
 export const plannerApi = {
-  generate: (tripId) =>
-    request(`/api/planner/trips/${tripId}/generate/`, { method: 'POST', body: {}, auth: true }).then(unwrapPlan),
+  generate: (tripId, useAI = false) =>
+    request(`/api/planner/trips/${tripId}/generate/`, { method: 'POST', body: { use_ai: useAI }, auth: true }).then(unwrapPlan),
   latest: (tripId) => request(`/api/planner/trips/${tripId}/latest/`, { auth: true }).then(unwrapPlan),
   addItem: (tripId, body) =>
     request(`/api/planner/trips/${tripId}/itinerary/items/`, { method: 'POST', body, auth: true }).then((d) => d.plan),
