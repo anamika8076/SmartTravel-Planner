@@ -585,6 +585,7 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
   const [busy, setBusy] = useState(null);
   const [confirmRegen, setConfirmRegen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [useAI, setUseAI] = useState(false);
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('overview');
@@ -637,10 +638,11 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
     setError('');
     setEditError('');
     try {
-      const data = await plannerApi.generate(trip.id);
+      const data = await plannerApi.generate(trip.id, useAI);
       setPlan(data);
       setNeedsRegen(false);
       setStale(false);
+      setUseAI(false);
       setActiveDay(firstDayWithStops(data.itinerary));
     } catch (err) {
       setError(err.message);
@@ -740,6 +742,11 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
                   </span>
                   <span className="text-white/40">·</span>
                   <span className="text-white/80">{itinerary.length} stops over {totalDays} days</span>
+                  {plan.planner?.mode === 'ai' && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-400/20 ring-1 ring-orange-200/30 text-orange-100">
+                      <Sparkles className="w-3.5 h-3.5" /> AI-assisted
+                    </span>
+                  )}
                 </div>
               ) : needsRegen ? (
                 <p className="mt-1 text-sm text-white/70">This plan was made by an older planner version and needs regenerating.</p>
@@ -763,6 +770,23 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
             )}
           </div>
         </div>
+      </div>
+      <div className="border-t border-slate-100 bg-white px-5 py-4 sm:px-6">
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 accent-orange-600"
+            checked={useAI}
+            onChange={(event) => setUseAI(event.target.checked)}
+            disabled={loading || generating}
+          />
+          <span>
+            <span className="block font-semibold text-slate-900">Use AI to assign sightseeing places to trip days</span>
+            <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+              If selected, the route, dates, traveller count, and saved sightseeing-place names, categories, visit durations, and coordinates are sent to Cloudflare Workers AI (Qwen3.8 27B). Cloudflare lists zero data retention for this model and a 10,000-Neuron daily free allowance; Workers AI Paid usage above the allowance is billable. The planner still checks place IDs and schedule limits; failed AI requests fall back to the standard planner.
+            </span>
+          </span>
+        </label>
       </div>
       {(stale || (error && !open)) && (
         <div className="p-4 sm:px-6 space-y-2">
@@ -1040,7 +1064,7 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
       <ConfirmDialog
         open={confirmRegen}
         title="Regenerate your plan?"
-        message="This builds a fresh plan and replaces your current itinerary, including any changes you made."
+        message={`This builds a fresh plan and replaces your current itinerary, including any changes you made.${useAI ? ' Your trip details and saved sightseeing-place data will be sent to Cloudflare Workers AI.' : ''}`}
         confirmLabel="Regenerate"
         onConfirm={generate}
         onCancel={() => setConfirmRegen(false)}
