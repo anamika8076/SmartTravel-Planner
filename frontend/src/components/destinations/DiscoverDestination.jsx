@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Globe2, MapPin, Search } from 'lucide-react';
-import { TextField } from '../ui/Field';
 import { Alert } from '../ui/Feedback';
 import Button from '../ui/Button';
 import Combobox from '../ui/Combobox';
+import CityAutocomplete from '../ui/CityAutocomplete';
 import { destinationSearchApi, destinationsApi } from '../../api/endpoints';
 import { titleCase } from '../../utils/format';
 
@@ -25,6 +25,13 @@ export default function DiscoverDestination({ initialCity = '', initialState = '
   const [errors, setErrors] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const selectCity = (option) => {
+    if (typeof option === 'object' && option?.state) {
+      setState(option.state);
+      setErrors((current) => ({ ...current, state: '' }));
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -69,16 +76,17 @@ export default function DiscoverDestination({ initialCity = '', initialState = '
       <form onSubmit={submit} noValidate className="space-y-3">
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:p-1.5 sm:rounded-full sm:bg-white sm:shadow-2xl sm:shadow-black/30">
           <div className="relative flex-1 min-w-0">
-            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-            <input
-              ref={inputRef}
-              aria-label="City or town"
-              aria-invalid={!!errors.city}
+            <CityAutocomplete
+              id="dd-city-hero"
+              ariaLabel="City or town"
+              ariaInvalid={!!errors.city}
+              icon={MapPin}
               placeholder="City or town, e.g. Shimla"
               value={city}
               onChange={(e) => { setCity(e.target.value); setErrors((er) => ({ ...er, city: '' })); }}
-              className={`${field} sm:focus:ring-0`}
-              autoComplete="off"
+              onSelect={selectCity}
+              inputClassName={`${field} sm:focus:ring-0`}
+              inputRef={inputRef}
             />
           </div>
           <div className="relative flex-1 min-w-0 sm:border-l sm:border-slate-200">
@@ -119,7 +127,21 @@ export default function DiscoverDestination({ initialCity = '', initialState = '
       </p>
       <Alert>{error}</Alert>
       <div className="grid sm:grid-cols-2 gap-4">
-        <TextField id="dd-city" label="City or town" icon={MapPin} placeholder="e.g. Shimla" value={city} onChange={(e) => { setCity(e.target.value); setErrors((er) => ({ ...er, city: '' })); }} error={errors.city} autoComplete="off" />
+        <div className="space-y-1.5">
+          <label htmlFor="dd-city" className="block text-sm font-medium text-slate-700">City or town</label>
+          <CityAutocomplete
+            id="dd-city"
+            ariaLabel="City or town"
+            ariaInvalid={!!errors.city}
+            icon={MapPin}
+            placeholder="e.g. Shimla"
+            value={city}
+            onChange={(e) => { setCity(e.target.value); setErrors((er) => ({ ...er, city: '' })); }}
+            onSelect={selectCity}
+            inputClassName={`w-full rounded-xl border bg-white py-2.5 pl-11 text-sm text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:outline-none focus:ring-2 ${errors.city ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-200' : 'border-slate-200 hover:border-slate-300 focus:border-orange-500 focus:ring-orange-500/15'}`}
+          />
+          {errors.city && <p className="text-xs text-rose-500 font-medium">{errors.city}</p>}
+        </div>
         <div className="space-y-1.5">
           <label htmlFor="dd-state" className="block text-sm font-medium text-slate-700">State</label>
           <Combobox

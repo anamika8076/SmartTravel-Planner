@@ -44,6 +44,17 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+  .day-tabs-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(148 163 184) transparent;
+  }
+  .day-tabs-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+  .day-tabs-scroll::-webkit-scrollbar-thumb {
+    background: rgb(148 163 184);
+    border-radius: 9999px;
+  }
 
   /* Animations (kept here rather than in tailwind.config.js) */
   .animate-fadeIn {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import HotelPicker from './HotelPicker';
-import { BedDouble, ExternalLink, MapPin, Pencil, Search, Star, Trash2 } from 'lucide-react';
+import { BedDouble, CheckCircle2, Circle, ExternalLink, MapPin, Pencil, Search, Star, Trash2 } from 'lucide-react';
 import ItemsSection from './ItemsSection';
 import AccommodationForm from './AccommodationForm';
 import useTripItems from './useTripItems';
@@ -19,10 +19,10 @@ function bestIds(items) {
   return { cheapest: cheapest?.id, topRated: topRated?.id };
 }
 
-function StayItem({ stay, nights, best, onEdit, onDelete }) {
+function StayItem({ stay, nights, best, onSelect, onEdit, onDelete }) {
   const hasRating = stay.rating != null && stay.rating !== '';
   return (
-    <div className="rounded-xl ring-1 ring-slate-200 hover:ring-orange-200 hover:shadow-md hover:shadow-slate-900/5 bg-white transition-all">
+    <div className={`rounded-xl ring-1 ${stay.is_selected ? 'ring-2 ring-emerald-400' : 'ring-slate-200'} hover:ring-orange-200 hover:shadow-md hover:shadow-slate-900/5 bg-white transition-all`}>
       <div className="flex items-start gap-3 p-4">
         <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-50 to-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0">
           <BedDouble className="w-5 h-5" />
@@ -42,8 +42,10 @@ function StayItem({ stay, nights, best, onEdit, onDelete }) {
               </span>
             )}
           </div>
-          {(best.cheapest === stay.id || best.topRated === stay.id) && (
+          {(best.cheapest === stay.id || best.topRated === stay.id || stay.is_estimate || stay.is_selected) && (
             <div className="mt-2 flex flex-wrap gap-1">
+              {stay.is_selected && <Badge tone="emerald">Your pick</Badge>}
+              {stay.is_estimate && <Badge tone="amber">Typical price</Badge>}
               {best.cheapest === stay.id && <Badge tone="emerald">Cheapest</Badge>}
               {best.topRated === stay.id && <Badge tone="amber">Top rated</Badge>}
             </div>
@@ -65,6 +67,10 @@ function StayItem({ stay, nights, best, onEdit, onDelete }) {
             Book
           </Button>
         )}
+        <Button size="sm" variant="ghost" icon={stay.is_selected ? CheckCircle2 : Circle} onClick={onSelect}
+          aria-pressed={!!stay.is_selected} className={stay.is_selected ? '!text-emerald-700' : ''}>
+          {stay.is_selected ? 'Selected' : 'Use this'}
+        </Button>
         <Button size="sm" variant="ghost" icon={Pencil} onClick={onEdit}>Edit</Button>
         <Button size="sm" variant="ghost-danger" icon={Trash2} onClick={onDelete}>Delete</Button>
       </div>
@@ -81,6 +87,10 @@ export default function AccommodationSection({ trip, reloadKey, onChange }) {
     await state.create(body);
   };
   const best = bestIds(state.items);
+  const select = async (stay) => {
+    await state.update(stay.id, { is_selected: !stay.is_selected });
+    await state.reload({ silent: true });
+  };
   const nights = nightsBetween(trip.start_date, trip.end_date);
 
   return (
@@ -113,13 +123,13 @@ export default function AccommodationSection({ trip, reloadKey, onChange }) {
       title="Where to stay"
       icon={BedDouble}
       tint="bg-orange-50 text-orange-600"
-      description="Shortlist hotels, hostels and homestays."
+      description="Suggestions use typical prices. Pick one, or add the place you booked."
       addLabel="Add stay"
       noun="stay"
       emptyText="Add a few hotels or hostels to compare price and rating."
       state={state}
       renderItem={(stay, { onEdit, onDelete }) => (
-        <StayItem stay={stay} nights={nights} best={best} onEdit={onEdit} onDelete={onDelete} />
+        <StayItem stay={stay} nights={nights} best={best} onSelect={() => select(stay)} onEdit={onEdit} onDelete={onDelete} />
       )}
       renderForm={({ item, onSubmit, onCancel }) => (
         <AccommodationForm trip={trip} stay={item} onSubmit={onSubmit} onCancel={onCancel} />

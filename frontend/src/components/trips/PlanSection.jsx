@@ -7,6 +7,8 @@ import {
   BedDouble,
   CalendarRange,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Coffee,
   ExternalLink,
@@ -34,11 +36,11 @@ import Photo from '../ui/Photo';
 import { destinationsApi, plannerApi } from '../../api/endpoints';
 import { ACCOMMODATION_TYPES, TRANSPORT_TYPES, labelFor, prettify } from '../../constants/options';
 import { placeMeta } from '../destinations/placeMeta';
-import { formatDate, formatDateTime, formatDuration, formatINR, nightsBetween, parseDate, titleCase } from '../../utils/format';
+import { cityKey, formatDate, formatDateTime, formatDuration, formatINR, nightsBetween, parseDate, titleCase } from '../../utils/format';
 
 // Categories the backend refuses to put in the sightseeing itinerary.
 const NON_ITINERARY = new Set([
-  'restaurant', 'cafe', 'hotel', 'hostel', 'guest_house', 'guesthouse', 'motel', 'apartment',
+  'hotel', 'hostel', 'guest_house', 'guesthouse', 'motel', 'apartment',
   'information', 'fuel', 'parking', 'toilets', 'bus_station', 'railway_station',
 ]);
 
@@ -71,7 +73,7 @@ const EXTRA_COSTS = {
   'return transport': { label: 'Return journey', hint: 'Getting back home', icon: Route },
   'local transport': { label: 'Getting around', hint: 'Cabs, autos, local buses', icon: Footprints },
   meals: { label: 'Food & drinks', hint: 'Meals and snacks', icon: UtensilsCrossed },
-  'attraction entry fees': { label: 'Entry tickets', hint: 'Fees at places you visit', icon: Sun },
+  'attraction entry fees': { label: 'Place fees', hint: 'Entry charges at places you visit', icon: Sun },
 };
 
 function CostRow({ icon: Icon, tint, label, value, missing, missingText }) {
@@ -139,7 +141,7 @@ function CostSummary({ cost, budgetFallback }) {
           <CostRow icon={BedDouble} tint="bg-orange-50 text-orange-600" label="Stay" value={cost.accommodation}
             missing={stayMissing} missingText="Add a hotel with its price under “Where to stay”." />
           {Number(cost.attractions) > 0 && (
-            <CostRow icon={Sun} tint="bg-emerald-50 text-emerald-600" label="Entry tickets" value={cost.attractions} />
+            <CostRow icon={Sun} tint="bg-emerald-50 text-emerald-600" label="Places & activities" value={cost.attractions} />
           )}
         </ul>
       </div>
@@ -187,27 +189,82 @@ function ChoiceCard({ icon: Icon, tint, label, children, empty }) {
 /* ------------------------------------------------------------------ */
 
 function DayTabs({ days, active, onChange, startDate, countFor }) {
+  const rowRef = useRef(null);
+  const btnRefs = useRef({});
+  const [edges, setEdges] = useState({ left: false, right: false });
+
+  const updateEdges = useCallback(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    setEdges({
+      left: el.scrollLeft > 4,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
+    });
+  }, []);
+
+  useEffect(() => {
+    updateEdges();
+    window.addEventListener('resize', updateEdges);
+    return () => window.removeEventListener('resize', updateEdges);
+  }, [updateEdges, days.length]);
+
+  useEffect(() => {
+    btnRefs.current[active]?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  }, [active]);
+
+  const scrollBy = (dir) => {
+    const el = rowRef.current;
+    if (el) el.scrollBy({ left: dir * Math.max(160, el.clientWidth * 0.8), behavior: 'smooth' });
+  };
+
+  const onKeyDown = (e) => {
+    const i = days.indexOf(active);
+    if (e.key === 'ArrowRight' && i < days.length - 1) { e.preventDefault(); onChange(days[i + 1]); }
+    if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); onChange(days[i - 1]); }
+  };
+
+  const arrow = 'absolute top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white shadow-md ring-1 ring-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50';
+
   return (
-    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
-      {days.map((day) => {
-        const isActive = day === active;
-        const n = countFor(day);
-        return (
-          <button
-            key={day}
-            type="button"
-            onClick={() => onChange(day)}
-            className={`flex-shrink-0 px-4 py-2 rounded-2xl text-left transition-all ${
-              isActive ? 'bg-slate-900 text-white shadow-md' : 'bg-white ring-1 ring-slate-200 text-slate-600 hover:ring-slate-300'
-            }`}
-          >
-            <p className="text-sm font-semibold">Day {day}</p>
-            <p className={`text-[11px] ${isActive ? 'text-white/70' : 'text-slate-400'}`}>
-              {dayLabel(startDate, day)} · {n} stop{n === 1 ? '' : 's'}
-            </p>
-          </button>
-        );
-      })}
+    <div className="relative" data-testid="day-tabs">
+      {edges.left && (
+        <button type="button" aria-label="Previous days" onClick={() => scrollBy(-1)} className={`${arrow} left-0`}>
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      )}
+      <div
+        ref={rowRef}
+        onScroll={updateEdges}
+        onKeyDown={onKeyDown}
+        className="flex gap-2 overflow-x-auto day-tabs-scroll pb-2 -mx-1 px-1 scroll-smooth"
+      >
+        {days.map((day) => {
+          const isActive = day === active;
+          const n = countFor(day);
+          return (
+            <button
+              key={day}
+              ref={(el) => { btnRefs.current[day] = el; }}
+              type="button"
+              aria-pressed={isActive}
+              onClick={() => onChange(day)}
+              className={`flex-shrink-0 px-4 py-2 rounded-2xl text-left transition-all ${
+                isActive ? 'bg-slate-900 text-white shadow-md' : 'bg-white ring-1 ring-slate-200 text-slate-600 hover:ring-slate-300'
+              }`}
+            >
+              <p className="text-sm font-semibold">Day {day}</p>
+              <p className={`text-[11px] ${isActive ? 'text-white/70' : 'text-slate-400'}`}>
+                {dayLabel(startDate, day)} · {n} stop{n === 1 ? '' : 's'}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+      {edges.right && (
+        <button type="button" aria-label="Next days" onClick={() => scrollBy(1)} className={`${arrow} right-0`}>
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -236,8 +293,8 @@ function ItineraryEditor({ items, day, totalDays, busy, onDelete, onReorder, onM
         <div className="mx-auto w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
           <Sun className="w-6 h-6" />
         </div>
-        <p className="mt-3 font-semibold text-slate-900">Day {day} is free</p>
-        <p className="text-sm text-slate-500">A travel or rest day — or add something to do.</p>
+        <p className="mt-3 font-semibold text-slate-900">Day {day} has no approved stops yet</p>
+        <p className="text-sm text-slate-500">Review the optional suggestions below, or add another place yourself.</p>
         <Button size="sm" icon={Plus} onClick={onAdd} className="mt-4">Add an activity</Button>
       </div>
     );
@@ -332,10 +389,83 @@ function ItineraryEditor({ items, day, totalDays, busy, onDelete, onReorder, onM
   );
 }
 
+function ActivitySuggestions({ items, day, busy, onAdd, onDismiss }) {
+  const suggestions = (items || []).filter((item) => item.day === day);
+
+  return (
+    <section className="mt-6 rounded-2xl bg-orange-50/60 ring-1 ring-orange-100 p-4">
+      <div>
+        <h4 className="font-semibold text-slate-900">Suggested for Day {day}</h4>
+        <p className="mt-1 text-xs text-slate-600">
+          These are ideas, not bookings or planned stops. They are added only if you choose to add them.
+          Budget is a guide; you decide whether an extra cost is worthwhile.
+        </p>
+      </div>
+      {suggestions.length ? (
+        <ul className="mt-3 space-y-3">
+          {suggestions.map((item) => {
+            const saving = busy === `suggestion-${item.id}`;
+            const link = mapsLink(item.latitude, item.longitude);
+            return (
+              <li key={item.id} className="rounded-2xl bg-white ring-1 ring-orange-100 p-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-slate-900">
+                      {item.name}
+                      <span className="ml-2 text-xs font-normal text-orange-700">Suggested · not added</span>
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {prettify(item.category)} · about {formatDuration(item.duration_minutes)} · proposed start {item.start_time}
+                      {link && <> · <a href={link} target="_blank" rel="noopener noreferrer" className="hover:text-orange-700">Map</a></>}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      {item.estimated_cost
+                        ? `Estimated extra cost: ${formatINR(item.estimated_cost)}`
+                        : 'Price not listed; budget impact is unknown.'}
+                    </p>
+                    {item.would_exceed_budget && (
+                      <p className="mt-1 text-xs font-medium text-rose-700">
+                        Adding this would exceed the remaining known budget by about {formatINR(item.budget_overage)}.
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2 sm:flex-shrink-0">
+                    <Button
+                      size="sm"
+                      onClick={() => onAdd(item)}
+                      loading={saving}
+                      disabled={!!busy}
+                    >
+                      {item.would_exceed_budget ? 'Add anyway' : `Add to Day ${day}`}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => onDismiss(item)}
+                      disabled={!!busy}
+                    >
+                      Not now
+                    </Button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm text-slate-600">
+          No more saved places fit this day. Add places with Discover, or use “Add an activity”.
+        </p>
+      )}
+    </section>
+  );
+}
+
 const EVENT_STYLE = {
   sightseeing: { icon: Sun, dot: 'bg-orange-500', box: 'bg-white ring-1 ring-slate-200' },
   meal: { icon: UtensilsCrossed, dot: 'bg-amber-400', box: 'bg-amber-50/70 ring-1 ring-amber-100' },
   free_time: { icon: Coffee, dot: 'bg-slate-300', box: 'bg-stone-50 ring-1 ring-dashed ring-stone-200' },
+  travel: { icon: Route, dot: 'bg-sky-500', box: 'bg-sky-50/70 ring-1 ring-sky-100' },
 };
 
 function Timeline({ schedule }) {
@@ -352,14 +482,20 @@ function Timeline({ schedule }) {
               <div className="flex items-start justify-between gap-3">
                 <p className="flex items-center gap-2 font-semibold text-slate-900">
                   <Icon className="w-4 h-4 text-slate-400" />
-                  {ev.title}
+                  {ev.type === 'free_time' ? 'Open time' : ev.title}
                   {ev.type === 'meal' && ev.place?.name && <span className="font-normal text-slate-600">· {ev.place.name}</span>}
                 </p>
                 <span className="flex-shrink-0 text-xs text-slate-400 tabular-nums">
                   {ev.start_time}–{ev.end_time}
                 </span>
               </div>
-              {ev.note && <p className="mt-0.5 text-xs text-slate-500">{ev.note}</p>}
+              {ev.note && (
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {ev.type === 'free_time'
+                    ? 'Review the optional suggestions below; this time stays open unless you choose to add one.'
+                    : ev.note}
+                </p>
+              )}
             </div>
           </li>
         );
@@ -369,7 +505,7 @@ function Timeline({ schedule }) {
 }
 
 function AddActivity({ trip, day, scheduledNames, onSubmit, onCancel }) {
-  const [places, setPlaces] = useState(null);
+  const [allPlaces, setAllPlaces] = useState(null);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [chosen, setChosen] = useState(null);
@@ -381,17 +517,24 @@ function AddActivity({ trip, day, scheduledNames, onSubmit, onCancel }) {
     destinationsApi
       .list()
       .then((list) => {
-        const dest = list.find((d) => d.name?.toLowerCase() === String(trip.destination).trim().toLowerCase());
-        const usable = (dest?.places || []).filter(
-          (p) => !NON_ITINERARY.has(String(p.category).toLowerCase()) && !scheduledNames.has(`${p.name}|${Number(p.latitude)}|${Number(p.longitude)}`)
-        );
-        if (alive) setPlaces(usable);
+        const dest = list.find((d) => cityKey(d.name) === cityKey(trip.destination));
+        if (alive) setAllPlaces(dest?.places || []);
       })
       .catch((err) => alive && setError(err.message));
     return () => {
       alive = false;
     };
-  }, [trip.destination, scheduledNames]);
+  }, [trip.destination]);
+
+  // Filter locally so plan edits don't refetch every destination.
+  const places = useMemo(
+    () =>
+      allPlaces &&
+      allPlaces.filter(
+        (p) => !NON_ITINERARY.has(String(p.category).toLowerCase()) && !scheduledNames.has(`${p.name}|${Number(p.latitude)}|${Number(p.longitude)}`)
+      ),
+    [allPlaces, scheduledNames]
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -575,7 +718,7 @@ const TABS = [
   { key: 'extras', label: 'Hotels & food', icon: UtensilsCrossed },
 ];
 
-export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded }) {
+export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded, onGenerated }) {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -590,9 +733,9 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('overview');
   const [stale, setStale] = useState(false);
+  const [autoUpdating, setAutoUpdating] = useState(false);
 
   const totalDays = nightsBetween(trip.start_date, trip.end_date) + 1;
-  const days = useMemo(() => Array.from({ length: Math.max(totalDays, 1) }, (_, i) => i + 1), [totalDays]);
   const [activeDay, setActiveDay] = useState(1);
 
   const load = useCallback(async () => {
@@ -600,7 +743,10 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
     setError('');
     setNeedsRegen(false);
     try {
-      setPlan(await plannerApi.latest(trip.id));
+      const latest = await plannerApi.latest(trip.id);
+      setPlan(latest);
+      // Dates, travellers, budget, travel or stay changed since this plan was made.
+      if (latest?.stale) setStale(true);
     } catch (err) {
       setPlan(null);
       if (err.status === 409) setNeedsRegen(true);
@@ -615,6 +761,13 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
   }, [load]);
 
   const itinerary = plan?.itinerary || [];
+  // Stops can sit past the trip's last day if the dates were shortened;
+  // keep those days reachable so they can be moved or removed.
+  const lastStopDay = itinerary.reduce((max, i) => Math.max(max, i.day || 0), 0);
+  const days = useMemo(
+    () => Array.from({ length: Math.max(totalDays, lastStopDay, 1) }, (_, i) => i + 1),
+    [totalDays, lastStopDay]
+  );
   const firstDayWithStops = (list) => {
     const d = (list || []).reduce((min, i) => Math.min(min, i.day), Infinity);
     return Number.isFinite(d) ? d : 1;
@@ -630,26 +783,49 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadKey]);
 
-  const generate = async () => {
+  // `auto`: rebuild in place after the trip changed, keeping the AI choice
+  // the plan was made with and not opening the plan window.
+  const generate = async ({ auto = false } = {}) => {
     setConfirmRegen(false);
-    setOpen(true);
-    setTab('overview');
+    if (!auto) {
+      setOpen(true);
+      setTab('overview');
+    }
     setGenerating(true);
+    setAutoUpdating(auto);
     setError('');
     setEditError('');
     try {
-      const data = await plannerApi.generate(trip.id, useAI);
+      const ai = auto ? plan?.planner?.mode === 'ai' : useAI;
+      const data = await plannerApi.generate(trip.id, ai);
       setPlan(data);
       setNeedsRegen(false);
       setStale(false);
       setUseAI(false);
       setActiveDay(firstDayWithStops(data.itinerary));
+      autoTried.current = 0;
+      onGenerated?.();
     } catch (err) {
       setError(err.message);
     } finally {
       setGenerating(false);
+      setAutoUpdating(false);
     }
   };
+
+  // An out-of-date plan is misleading, so rebuild it automatically. The short
+  // delay groups several quick changes (e.g. picking a flight and a hotel).
+  const autoTried = useRef(0);
+  useEffect(() => {
+    if (!stale || !plan || generating || loading) return undefined;
+    if (autoTried.current >= 3) return undefined; // don't loop on a failing generate
+    const timer = setTimeout(() => {
+      autoTried.current += 1;
+      generate({ auto: true });
+    }, 700);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stale, plan?.plan_id, generating, loading, reloadKey]);
 
   const askGenerate = () => (plan ? setConfirmRegen(true) : generate());
 
@@ -688,9 +864,29 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
     await edit(item.id, () => plannerApi.deleteItem(trip.id, item.id));
   };
   const add = async (body) => {
-    setPlan(await plannerApi.addItem(trip.id, body));
-    setAdding(false);
+    try {
+      setPlan(await plannerApi.addItem(trip.id, body));
+      setAdding(false);
+    } catch (err) {
+      if (err.status === 409) {
+        setNeedsRegen(true);
+        setAdding(false);
+      }
+      throw err;
+    }
   };
+  const addSuggestion = (suggestion) => edit(
+    `suggestion-${suggestion.id}`,
+    () => plannerApi.addItem(trip.id, {
+      day: suggestion.day,
+      place_id: suggestion.id,
+      start_time: suggestion.start_time,
+    })
+  );
+  const dismissSuggestion = (suggestion) => edit(
+    `suggestion-${suggestion.id}`,
+    () => plannerApi.dismissSuggestion(trip.id, suggestion.id)
+  );
 
   // Backend warnings, minus technical ones that don't matter to the traveller.
   const warnings = useMemo(() => {
@@ -698,13 +894,20 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
     return list
       .map((w) => {
         if (/^flight search skipped/i.test(w) || /flight provider is temporarily unavailable/i.test(w) || /no usable inr flight offers/i.test(w)) {
-          // Irrelevant when a transport option is already in the plan.
-          return plan?.transport ? null : 'We couldn’t look up flights automatically for this trip. Use “Search flights” or add your transport manually.';
+          return plan?.transport ? null : 'The app does not import live flight offers. Search externally and add the quote you want to compare.';
+        }
+        if (/^no priced transport option is saved/i.test(w)) {
+          return plan?.transport ? null : 'No priced transport option is saved. Search externally and add a verified quote to compare options.';
         }
         return w;
       })
+      .concat(
+        lastStopDay > totalDays
+          ? [`Some stops are on days after your trip ends (Day ${totalDays}). Move or remove them, or regenerate the plan.`]
+          : []
+      )
       .filter((w, i, all) => w && all.indexOf(w) === i);
-  }, [plan]);
+  }, [plan, lastStopDay, totalDays]);
 
   const scheduledNames = useMemo(
     () => new Set(itinerary.filter((i) => i.place).map((i) => `${i.place}|${Number(i.latitude)}|${Number(i.longitude)}`)),
@@ -752,7 +955,7 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
                 <p className="mt-1 text-sm text-white/70">This plan was made by an older planner version and needs regenerating.</p>
               ) : (
                 <p className="mt-1 text-sm text-white/70 max-w-lg">
-                  We’ll pick the cheapest mix of your saved transport and stays that fits your budget, then build a day-by-day itinerary you can edit.
+                  We’ll balance your saved quotes by cost and convenience, choose a budget-fitting combination when possible, and show up to three alternatives.
                 </p>
               )}
             </div>
@@ -783,7 +986,7 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
           <span>
             <span className="block font-semibold text-slate-900">Use AI to assign sightseeing places to trip days</span>
             <span className="mt-1 block text-xs leading-relaxed text-slate-500">
-              If selected, the route, dates, traveller count, and saved sightseeing-place names, categories, visit durations, and coordinates are sent to Cloudflare Workers AI (Qwen3.8 27B). Cloudflare lists zero data retention for this model and a 10,000-Neuron daily free allowance; Workers AI Paid usage above the allowance is billable. The planner still checks place IDs and schedule limits; failed AI requests fall back to the standard planner.
+              AI cannot browse the web; it only arranges sightseeing places saved for this destination. If none are saved, the planner finds them from OpenStreetMap first. It does not find transport or hotel offers. When selected, the route, dates, traveller count, budget, travel mode, and saved place details are sent to Cloudflare Workers AI (Qwen3.8 27B). Cloudflare lists zero data retention for this model and a 10,000-Neuron daily free allowance; usage above the allowance can be billable. Failed AI requests fall back to the standard planner.
             </span>
           </span>
         </label>
@@ -791,8 +994,8 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
       {(stale || (error && !open)) && (
         <div className="p-4 sm:px-6 space-y-2">
           {stale && (
-            <Alert type="info" action={<Button size="sm" onClick={askGenerate}>Update plan</Button>}>
-              You changed this trip’s transport or stays. Regenerate to include them.
+            <Alert type="info" action={<Button size="sm" onClick={() => generate({ auto: true })} loading={generating}>Update now</Button>}>
+              {autoUpdating ? 'Trip changed — updating your plan…' : 'Trip changed — your plan will update automatically.'}
             </Alert>
           )}
           {error && !open && <Alert>{error}</Alert>}
@@ -859,7 +1062,7 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
           </div>
         </div>
         <p className="mt-6 font-serif text-2xl font-semibold text-slate-900">Planning your trip…</p>
-        <p className="mt-1 text-sm text-slate-500 max-w-sm">Comparing your transport and stays, then fitting the best places into each day. This can take a little while.</p>
+        <p className="mt-1 text-sm text-slate-500 max-w-sm">Checking the city and adding missing OpenStreetMap places, then building your itinerary. This can take a little while.</p>
       </div>
     );
   } else if (!plan) {
@@ -879,9 +1082,17 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
     body = (
       <div className="p-5 sm:p-8 space-y-6">
         {error && <Alert>{error}</Alert>}
+        {plan.data_preparation &&
+          (plan.data_preparation.destination_created || plan.data_preparation.places_added > 0) && (
+            <Alert type="info">
+              Added {plan.data_preparation.places_added} OpenStreetMap place
+              {plan.data_preparation.places_added === 1 ? '' : 's'} for {titleCase(plan.data_preparation.destination)}.
+              {' '}{plan.data_preparation.places_available} place records are now available for this destination.
+            </Alert>
+          )}
         {stale && (
-          <Alert type="info" action={<Button size="sm" onClick={() => setConfirmRegen(true)}>Update plan</Button>}>
-            You changed this trip’s transport or stays. Regenerate to include them.
+          <Alert type="info" action={<Button size="sm" onClick={() => generate({ auto: true })}>Update now</Button>}>
+            Trip changed — your plan will update automatically.
           </Alert>
         )}
 
@@ -892,7 +1103,7 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
                 <CostSummary cost={cost} budgetFallback={trip.estimated_budget} />
               </Card>
               <div className="grid gap-4 content-start">
-                <ChoiceCard icon={Route} tint="bg-sky-50 text-sky-600" label="Getting there" empty="No priced transport saved — cost not included.">
+                <ChoiceCard icon={Route} tint="bg-sky-50 text-sky-600" label="Travel" empty="No priced transport saved — cost not included.">
                   {plan.transport && (
                     <div className="space-y-1">
                       <div className="flex items-baseline justify-between gap-3">
@@ -902,15 +1113,28 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
                         </p>
                         <p className="font-bold text-slate-900 tabular-nums">{formatINR(plan.transport.estimated_cost)}</p>
                       </div>
+                      <Badge tone="emerald">{plan.transport.is_selected ? 'Your pick' : 'Balanced pick'}</Badge>
                       <p className="text-sm text-slate-600">{titleCase(plan.transport.origin)} → {titleCase(plan.transport.destination)}</p>
                       <p className="text-xs text-slate-500">
                         {formatDateTime(plan.transport.departure_time)} → {formatDateTime(plan.transport.arrival_time)}
                         {plan.transport.duration_seconds > 0 && ` · ${formatDuration(Math.round(plan.transport.duration_seconds / 60))}`}
                       </p>
-                      <p className="text-[11px] text-slate-400">One way — return travel isn’t priced.</p>
+                      {plan.return_transport ? (
+                        <p className="text-xs text-slate-500">
+                          Back: {labelFor(TRANSPORT_TYPES, plan.return_transport.type)}
+                          {plan.return_transport.provider && ` · ${plan.return_transport.provider}`}
+                          {' · '}{formatDateTime(plan.return_transport.departure_time)}
+                          {' · '}<span className="tabular-nums">{formatINR(plan.return_transport.estimated_cost)}</span>
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-slate-400">One way — no return option saved.</p>
+                      )}
+                      {(plan.transport.is_estimate || plan.return_transport?.is_estimate) && (
+                        <p className="text-[11px] text-amber-700">Typical fares — check the real price before booking. Change it under Travel.</p>
+                      )}
                       {plan.transport.booking_url && (
                         <a href={plan.transport.booking_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 pt-1 text-xs font-semibold text-orange-600 hover:underline">
-                          Book <ExternalLink className="w-3 h-3" />
+                          View search / quote <ExternalLink className="w-3 h-3" />
                         </a>
                       )}
                     </div>
@@ -923,10 +1147,23 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
                         <p className="font-semibold text-slate-900">{plan.accommodation.name}</p>
                         <p className="font-bold text-slate-900 tabular-nums">{formatINR(plan.accommodation.estimated_total)}</p>
                       </div>
+                      <Badge tone="emerald">{plan.accommodation.is_selected ? 'Your pick' : 'Balanced pick'}</Badge>
                       <p className="text-sm text-slate-600">{labelFor(ACCOMMODATION_TYPES, plan.accommodation.type)}</p>
+                      {plan.accommodation.location && (
+                        <p className="text-sm text-slate-600">{plan.accommodation.location}</p>
+                      )}
                       <p className="text-xs text-slate-500 tabular-nums">
                         {formatINR(plan.accommodation.price_per_night)} × {plan.accommodation.nights} night{plan.accommodation.nights === 1 ? '' : 's'} (estimate)
                       </p>
+                      {plan.accommodation.rating != null && (
+                        <p className="text-xs text-slate-500">User-entered rating: {Number(plan.accommodation.rating).toFixed(1)} / 5</p>
+                      )}
+                      {plan.accommodation.nearest_sightseeing_distance_km != null && (
+                        <p className="text-xs text-slate-500">
+                          About {Number(plan.accommodation.nearest_sightseeing_distance_km).toFixed(1)} km straight-line to the nearest planned stop
+                          {plan.accommodation.nearest_sightseeing_place ? ` (${plan.accommodation.nearest_sightseeing_place})` : ''}.
+                        </p>
+                      )}
                       {plan.accommodation.price_warning && (
                         <p className="flex items-start gap-1 text-[11px] text-amber-700">
                           <AlertTriangle className="w-3 h-3 mt-px flex-shrink-0" /> {plan.accommodation.price_warning}
@@ -938,6 +1175,78 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
               </div>
             </div>
 
+            {(plan.transport_alternatives?.length > 0 || plan.accommodation_alternatives?.length > 0) && (
+              <div className="grid lg:grid-cols-2 gap-5">
+                {plan.transport_alternatives?.length > 0 && (
+                  <Card className="!rounded-3xl p-5 sm:p-6">
+                    <h3 className="font-serif text-lg font-semibold text-slate-900">Other transport options</h3>
+                    <p className="mt-1 text-xs text-slate-500">Up to three alternatives from your saved, user-verified quotes.</p>
+                    <ol className="mt-4 space-y-3">
+                      {plan.transport_alternatives.map((option, index) => (
+                        <li key={option.id} className="rounded-2xl bg-stone-50 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Alternative {index + 1}</p>
+                              <p className="mt-1 text-sm font-semibold text-slate-900">
+                                {labelFor(TRANSPORT_TYPES, option.type)}
+                                {option.provider && <span className="font-normal text-slate-500"> · {option.provider}</span>}
+                              </p>
+                            </div>
+                            <p className="text-sm font-bold text-slate-900">{formatINR(option.estimated_cost)}</p>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-600">{titleCase(option.origin)} → {titleCase(option.destination)}</p>
+                          <p className="text-xs text-slate-500">
+                            {formatDateTime(option.departure_time)} → {formatDateTime(option.arrival_time)}
+                            {option.duration_seconds > 0 && ` · ${formatDuration(Math.round(option.duration_seconds / 60))}`}
+                          </p>
+                          {option.booking_url && (
+                            <a href={option.booking_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-orange-600 hover:underline">
+                              View search / quote <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  </Card>
+                )}
+                {plan.accommodation_alternatives?.length > 0 && (
+                  <Card className="!rounded-3xl p-5 sm:p-6">
+                    <h3 className="font-serif text-lg font-semibold text-slate-900">Other stays</h3>
+                    <p className="mt-1 text-xs text-slate-500">Up to three alternatives using the nightly quotes you entered.</p>
+                    <ol className="mt-4 space-y-3">
+                      {plan.accommodation_alternatives.map((option, index) => (
+                        <li key={option.id} className="rounded-2xl bg-stone-50 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Alternative {index + 1}</p>
+                              <p className="mt-1 text-sm font-semibold text-slate-900">{option.name}</p>
+                            </div>
+                            <p className="text-sm font-bold text-slate-900">{formatINR(option.estimated_total)}</p>
+                          </div>
+                          {option.location && <p className="mt-1 text-xs text-slate-600">{option.location}</p>}
+                          <p className="text-xs text-slate-500">
+                            {formatINR(option.price_per_night)} per night
+                            {option.rating != null && ` · user-entered rating ${Number(option.rating).toFixed(1)} / 5`}
+                          </p>
+                          {option.nearest_sightseeing_distance_km != null && (
+                            <p className="text-xs text-slate-500">
+                              About {Number(option.nearest_sightseeing_distance_km).toFixed(1)} km straight-line to the nearest planned stop
+                              {option.nearest_sightseeing_place ? ` (${option.nearest_sightseeing_place})` : ''}.
+                            </p>
+                          )}
+                          {option.booking_url && (
+                            <a href={option.booking_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-orange-600 hover:underline">
+                              View stay details <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  </Card>
+                )}
+              </div>
+            )}
+
             <Card className="!rounded-3xl p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-serif text-lg font-semibold text-slate-900">Days at a glance</h3>
@@ -946,6 +1255,7 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
               <ul className="mt-4 grid sm:grid-cols-2 gap-2">
                 {days.map((d) => {
                   const stops = itinerary.filter((i) => i.day === d).sort((a, b) => a.order - b.order);
+                  const suggestion = plan.activity_suggestions?.find((item) => item.day === d);
                   return (
                     <li key={d}>
                       <button type="button" onClick={() => { setActiveDay(d); setTab('itinerary'); }}
@@ -957,7 +1267,11 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
                         <span className="min-w-0">
                           <span className="block text-xs text-slate-400">{dayLabel(trip.start_date, d)}</span>
                           <span className="block text-sm text-slate-700 truncate">
-                            {stops.length ? stops.map((s) => s.place).join(' · ') : 'Free / travel day'}
+                            {stops.length
+                              ? `${stops.map((s) => s.place).join(' · ')}${suggestion ? ` · Suggested: ${suggestion.name} (not added)` : ''}`
+                              : suggestion
+                                ? `Suggested: ${suggestion.name} · not added`
+                                : 'No saved activity suggestion'}
                           </span>
                         </span>
                       </button>
@@ -988,7 +1302,9 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
               <div>
                 <h3 className="font-serif text-xl font-semibold text-slate-900">{tab === 'itinerary' ? 'Itinerary' : 'Full day'}</h3>
                 <p className="text-sm text-slate-500">
-                  {tab === 'itinerary' ? 'Reorder, move or remove stops — changes save instantly.' : 'Your day from 09:00 to 21:00, with meals and free time.'}
+                  {tab === 'itinerary'
+                    ? 'Reorder, move or remove planned stops. Optional suggestions are added only after you approve them.'
+                    : 'Your planned stops, meal breaks, open time, and optional additions.'}
                 </p>
               </div>
             </div>
@@ -1002,6 +1318,13 @@ export default function PlanSection({ trip, reloadKey = 0, onAccommodationAdded 
             ) : (
               <Timeline schedule={schedule} />
             )}
+            <ActivitySuggestions
+              items={plan.activity_suggestions}
+              day={activeDay}
+              busy={busy}
+              onAdd={addSuggestion}
+              onDismiss={dismissSuggestion}
+            />
             {plan.unscheduled_places?.length > 0 && (
               <div className="mt-6 pt-5 border-t border-slate-100">
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Didn’t fit into your days</p>
