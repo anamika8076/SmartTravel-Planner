@@ -42,6 +42,8 @@ export const plannerApi = {
   latest: (tripId) => request(`/api/planner/trips/${tripId}/latest/`, { auth: true }).then(unwrapPlan),
   addItem: (tripId, body) =>
     request(`/api/planner/trips/${tripId}/itinerary/items/`, { method: 'POST', body, auth: true }).then((d) => d.plan),
+  dismissSuggestion: (tripId, placeId) =>
+    request(`/api/planner/trips/${tripId}/activity-suggestions/${placeId}/dismiss/`, { method: 'POST', auth: true }).then((d) => d.plan),
   deleteItem: (tripId, itemId) =>
     request(`/api/planner/trips/${tripId}/itinerary/items/${itemId}/`, { method: 'DELETE', auth: true }).then((d) => d.plan),
   moveItem: (tripId, itemId, body) =>
@@ -50,18 +52,34 @@ export const plannerApi = {
     request(`/api/planner/trips/${tripId}/itinerary/reorder/`, { method: 'PATCH', body: { day, item_ids: itemIds }, auth: true }).then((d) => d.plan),
 };
 
-// Live flight offers (provider can be unavailable → 502).
+// Free Google Flights search links; no flight API is called.
 export const flightsApi = {
-  search: ({ origin, destination, date_from, adults }) =>
-    request(withQuery('/api/flights/search/', { origin, destination, date_from, adults }), { auth: true }),
+  search: ({ origin, destination, date_from, adults, trip_id }) =>
+    request('/api/flights/search/', {
+      method: 'POST',
+      body: { origin, destination, date_from, adults, trip_id },
+      auth: true,
+    }),
 };
 
-// Hotels saved from OpenStreetMap for a destination (no prices).
+// Free OpenStreetMap hotel listings and an external search link for prices.
 export const hotelsApi = {
-  search: (cityName) => request(withQuery('/api/hotels/search/', { city_name: cityName }), { auth: true }),
+  search: (cityName, { tripId } = {}) => (
+    tripId
+      ? request('/api/hotels/search/', {
+        method: 'POST',
+        body: { city_name: cityName, trip_id: tripId },
+        auth: true,
+      })
+      : request(withQuery('/api/hotels/search/', { city_name: cityName }), { auth: true })
+  ),
 };
 
 // Look up a city on OpenStreetMap and save its places (public).
 export const destinationSearchApi = {
   search: ({ city, state }) => request('/api/destinations/search/', { method: 'POST', body: { city, state } }),
+};
+
+export const citySuggestionsApi = {
+  search: (query) => request(withQuery('/api/destinations/suggestions/', { q: query })),
 };

@@ -15,7 +15,9 @@ import NotFound from './pages/NotFound';
 
 export default function App() {
   return (
-    <BrowserRouter basename={import.meta.env.VITE_ROUTER_BASENAME || undefined}>
+    <BrowserRouter
+      basename={import.meta.env.VITE_ROUTER_BASENAME || (import.meta.env.PROD ? '/smarttravel' : undefined)}
+    >
       <AuthProvider>
         <Routes>
           <Route element={<GuestRoute />}>

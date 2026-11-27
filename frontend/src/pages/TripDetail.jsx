@@ -82,6 +82,10 @@ export default function TripDetail() {
   // Bumped when transport/stays change, so sections refresh and the plan knows it's out of date.
   const [reloadKey, setReloadKey] = useState(0);
   const bump = useCallback(() => setReloadKey((k) => k + 1), []);
+  // Bumped after a plan is generated: the planner may add suggested fares and
+  // stays, so the lists refresh without marking the plan out of date.
+  const [listKey, setListKey] = useState(0);
+  const refreshLists = useCallback(() => setListKey((k) => k + 1), []);
 
   const addAccommodationFromPlan = async (body) => {
     await accommodationsApi.create(body);
@@ -196,11 +200,11 @@ export default function TripDetail() {
       </Card>
 
       <div className="grid lg:grid-cols-2 gap-6 items-stretch">
-        <TransportSection trip={trip} reloadKey={reloadKey} onChange={bump} />
-        <AccommodationSection trip={trip} reloadKey={reloadKey} onChange={bump} />
+        <TransportSection trip={trip} reloadKey={reloadKey + listKey} onChange={bump} />
+        <AccommodationSection trip={trip} reloadKey={reloadKey + listKey} onChange={bump} />
       </div>
 
-      <PlanSection trip={trip} reloadKey={reloadKey} onAccommodationAdded={addAccommodationFromPlan} />
+      <PlanSection trip={trip} reloadKey={reloadKey} onAccommodationAdded={addAccommodationFromPlan} onGenerated={refreshLists} />
 
 
       <ConfirmDialog

@@ -91,7 +91,8 @@ export async function findCityPhoto(name, state = '', width = 1200) {
     const small = city.replace(/\b(Da|De|Di|Of|And|The|Ka|Ki|Ke)\b/g, (w) => w.toLowerCase());
     const names = [...new Set([city, small])];
     const titles = [
-      ...names.map((n) => st && `${n}, ${st}`),
+      // "Goa, Goa" never exists, so skip it when the city is the state.
+      ...names.map((n) => st && n.toLowerCase() !== st.toLowerCase() && `${n}, ${st}`),
       ...names.map((n) => `${n}, India`),
       ...names,
     ].filter(Boolean);

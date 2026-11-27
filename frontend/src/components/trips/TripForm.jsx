@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, CalendarDays, MapPin, Minus, Navigation, Plus, Wallet } from 'lucide-react';
 import { TextField } from '../ui/Field';
-import Combobox from '../ui/Combobox';
+import CityAutocomplete from '../ui/CityAutocomplete';
 import { Alert } from '../ui/Feedback';
 import Button from '../ui/Button';
 import { TRAVEL_MODES } from '../../constants/options';
@@ -193,7 +193,27 @@ export default function TripForm({ trip, initialValues, submitLabel, submitIcon,
     let alive = true;
     destinationsApi
       .list()
-      .then((list) => alive && setDestinationNames([...new Set(list.map((d) => titleCase(d.name)).filter(Boolean))]))
+      .then((list) => {
+        if (!alive) return;
+        const options = list
+          .map((destination) => {
+            const name = titleCase(destination.name);
+            const state = titleCase(destination.state || '');
+            return {
+              value: name,
+              label: state ? `${name}, ${state}` : name,
+              state,
+            };
+          })
+          .filter((option) => option.value);
+        const unique = new Map(
+          options.map((option) => [
+            `${option.value.toLowerCase()}|${option.state.toLowerCase()}`,
+            option,
+          ])
+        );
+        setDestinationNames([...unique.values()]);
+      })
       .catch(() => {});
     return () => {
       alive = false;
@@ -238,23 +258,32 @@ export default function TripForm({ trip, initialValues, submitLabel, submitIcon,
       <section className="space-y-4">
         <SectionTitle step={1}>Where are you going?</SectionTitle>
         <div className="grid sm:grid-cols-2 gap-4">
-          <TextField
-            id="source"
-            label="From"
-            icon={Navigation}
-            placeholder="e.g. Delhi"
-            value={values.source}
-            onChange={set('source')}
-            error={errors.source}
-            autoComplete="off"
-          />
+          <div className="space-y-1.5">
+            <label htmlFor="source" className="block text-sm font-medium text-slate-700">From</label>
+            <CityAutocomplete
+              id="source"
+              ariaLabel="Starting city"
+              ariaInvalid={!!errors.source}
+              icon={Navigation}
+              placeholder="e.g. Delhi"
+              options={destinationNames}
+              value={values.source}
+              onChange={set('source')}
+              inputClassName={`w-full rounded-xl border bg-white py-2.5 pl-11 text-sm text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:outline-none focus:ring-2 ${
+                errors.source
+                  ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-200'
+                  : 'border-slate-200 hover:border-slate-300 focus:border-orange-500 focus:ring-orange-500/15'
+              }`}
+            />
+            {errors.source && <p className="text-xs text-rose-500 font-medium">{errors.source}</p>}
+          </div>
           <div className="space-y-1.5">
             <label htmlFor="destination" className="block text-sm font-medium text-slate-700">To</label>
-            <Combobox
+            <CityAutocomplete
               id="destination"
+              ariaLabel="Destination city"
               ariaInvalid={!!errors.destination}
               icon={MapPin}
-              label="Saved destinations"
               placeholder="e.g. Manali"
               options={destinationNames}
               value={values.destination}
@@ -268,7 +297,7 @@ export default function TripForm({ trip, initialValues, submitLabel, submitIcon,
             {errors.destination ? (
               <p className="text-xs text-rose-500 font-medium">{errors.destination}</p>
             ) : (
-              <p className="text-xs text-slate-400">Pick a saved destination from the list.</p>
+              <p className="text-xs text-slate-400">Choose a suggestion or enter a city manually.</p>
             )}
           </div>
         </div>

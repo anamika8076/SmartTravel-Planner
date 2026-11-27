@@ -9,9 +9,11 @@
 
 ---
 
+> **Current project documentation:** [Project Summary (PDF)](docs/PROJECT_SUMMARY.pdf) · [Technical Details (PDF)](docs/TECHNICAL_DETAILS.pdf) · [Markdown sources](docs/PROJECT_SUMMARY.md) and [Technical Details](docs/TECHNICAL_DETAILS.md). Flight and hotel search currently use external search links and saved OpenStreetMap listings; they do not provide live prices.
+
 ## 1. Introduction
 
-The frontend is the part of Smart Travel Planner that users see and interact with. It is a single-page web application (SPA) built with React. Users can create an account, plan trips, compare transport and accommodation options, discover destinations, and generate a day-by-day travel plan that fits their budget.
+The frontend is the part of Smart Travel Planner that users see and interact with. It is a single-page web application (SPA) built with React. Users can create an account, plan trips, save transport and accommodation options, discover destinations, and generate a day-by-day travel plan based on known costs.
 
 All data is stored and processed by the Django backend. The frontend sends requests to the backend's REST API and displays the results.
 
@@ -54,9 +56,13 @@ All data is stored and processed by the Django backend. The frontend sends reque
 | Service | Use |
 |---|---|
 | Django REST backend | All application data and logic |
-| Wikipedia REST API | A real photo of each destination city |
-| Unsplash | Fixed banner photos |
+| Geoapify (optional) | City autocomplete; requires a backend API key |
+| OpenStreetMap Nominatim and Overpass | Geocode cities and discover places/hotels |
+| Cloudflare Workers AI (optional) | Itinerary day assignment only when a user opts in |
+| Wikipedia REST API | Destination photo metadata |
+| Unsplash | Fixed banner photos served from its image CDN |
 | Google Fonts | Inter (body text) and Playfair Display (headings) |
+| Google Flights / Google Search | Outbound search links only; no search API or scraping |
 
 ## 4. System Architecture
 
@@ -141,18 +147,16 @@ A **ProtectedRoute** sends logged-out users to the login page and returns them t
 ### 7.3 Transport (`/api/transport-options/`)
 - **Add, edit and delete** transport options (flight, train, bus, car, bike).
 - **Comparison labels:** "Cheapest" and "Fastest".
-- **Live flight search** (`GET /api/flights/search/`):
-  - airport codes are filled in automatically from city names,
-  - results are sorted cheapest first, with duplicates removed,
-  - one click saves a flight to the trip, and flights already saved are marked.
+- **Flight search** (`POST /api/flights/search/`): returns a Google Flights link using the route/date entered. No flight provider API is called and no live fares are returned. The user checks an offer and saves its details/total quote manually; the plan then recommends one balanced choice and up to three alternatives.
 
 ### 7.4 Accommodation (`/api/accommodations/`)
 - **Manual entry:** name, type, location, price per night and rating.
-- **Find hotels** (`GET /api/hotels/search/`): lists saved hotels for the destination. Adding one asks for the nightly price the user was quoted, because hotel listings have no live prices. Hotels already on the trip are marked "Added".
-- **Comparison labels:** "Cheapest" and "Top rated", plus the total cost for all nights.
+- **Find hotels** (`GET/POST /api/hotels/search/`): lists hotels saved from OpenStreetMap and includes an external Google Search link. OSM does not provide room prices or availability; adding a listing asks for a quoted nightly price and optional user-checked rating. Hotels already on the trip are marked "Added".
+- **Comparison labels:** based only on saved/entered data, not live booking offers.
 
 ### 7.5 Destinations (`/api/destinations/`, `/api/places/`)
-- **Discover a destination** (`POST /api/destinations/search/`): enter a city and state; the backend finds and saves its attractions, cafés and restaurants.
+- **Discover a destination** (`POST /api/destinations/search/`): enter a city and state; the backend uses Nominatim and Overpass to find and save places and hotel listings.
+- **City autocomplete** (`GET /api/destinations/suggestions/`): optional Geoapify integration; manual city entry is available if it is not configured.
 - **Saved destinations:** a searchable grid with a real photo of each city.
 - **Destination page:**
   - places grouped by category (attraction, viewpoint, café…) with map links,
@@ -161,8 +165,10 @@ A **ProtectedRoute** sends logged-out users to the login page and returns them t
 
 ### 7.6 Trip Planner (`/api/planner/...`)
 - **Generate plan** (`POST …/generate/`). The backend:
-  - chooses the cheapest combination of saved transport and stay that fits the budget,
-  - builds a sightseeing itinerary for each day.
+  - prefers combinations within the known budget, then balances saved transport cost/duration and accommodation price/rating/proximity,
+  - shows the recommended option and up to three saved alternatives for both transport and stays,
+  - builds a sightseeing itinerary for each day and reports unknown costs rather than treating them as free,
+  - optionally requests Cloudflare Workers AI to assign saved sightseeing places to days if the user opts in. The backend validates the result and falls back to local scheduling if AI is unavailable.
 - **Reopen plan** (`GET …/latest/`) shows the saved plan when the trip is opened again.
 - **Plan window** with four tabs:
   - **Overview:** the budget used and remaining, what has been counted (transport, stay), costs to set aside that cannot be estimated yet (return journey, local travel, food, entry tickets), the chosen transport and stay, and days at a glance.
@@ -215,15 +221,17 @@ A **ProtectedRoute** sends logged-out users to the login page and returns them t
 
 ## 11. Limitations
 
-These depend on the current backend (Version 1):
+These reflect the current implementation:
 
-- **Live flight search:** the provider can be rate-limited or unavailable; manual transport entry is always available instead.
-- **Hotels:** no live prices or availability, so users enter their own quoted price.
+- **Flights:** no live offers or fares; search opens Google Flights and the user enters any chosen transport and estimate.
+- **Hotels:** OSM listings have no live prices or availability; users must check externally and enter a quoted price.
 - **City discovery:**
-  - it depends on public OpenStreetMap servers, which are sometimes slow or busy;
-  - city lookup does not yet use the state, so some city names can match the wrong place.
-- **Costs not calculated:** return travel, local transport and meals.
-- **Not available yet:** train and bus search, user profile, feedback.
+  - it depends on public OpenStreetMap services, which can be slow, rate-limited or incomplete;
+  - autocomplete requires an optional Geoapify key.
+- **AI planning:** optional and subject to Cloudflare account quotas and billing. It is off by default.
+- **Distances:** hotel proximity and local itinerary legs are straight-line estimates, not road routes or turn-by-turn times.
+- **Costs not calculated:** unknown travel, local transport, meals and some entry fees are flagged rather than estimated as free.
+- **Train and bus search:** no live search provider is integrated; options can be entered manually.
 
 ## 12. Future Scope
 
@@ -244,21 +252,19 @@ npm run dev        # opens on http://localhost:5173
 
 The Django backend must be running on `http://127.0.0.1:8000`. For a deployed backend, set `VITE_API_BASE_URL` in a `.env` file (see `.env.example`).
 
-For a standard deployment at the domain root, build the frontend with the default base path:
-
 ```bash
 npm run build
 ```
 
-If your deployment serves the app under a URL prefix, set `VITE_BASE_PATH` and `VITE_ROUTER_BASENAME` to that prefix when building. Leave both unset for a domain-root deployment.
+The current hosted preview serves the app under `/smarttravel/`; its HTML base URL and router basename must match the deployment path. For another prefix or a domain-root deployment, update the HTML base URL and router basename together.
 
 ## 14. Conclusion
 
-The frontend delivers a complete, responsive interface for Smart Travel Planner and integrates every backend API that is available in Version 1:
+The frontend delivers a responsive interface for the current Smart Travel Planner APIs:
 
 - authentication with automatic token refresh,
 - trips, transport, accommodation and destinations,
-- flight and hotel search,
+- Google Flights/Google Search links and saved OSM hotel listings,
 - the budget-aware trip planner with itinerary editing.
 
 It uses a small set of well-known tools (React, React Router, Tailwind CSS and Vite) and is organised into reusable components and a single API layer, which keeps it easy to maintain and extend.

@@ -16,6 +16,14 @@ function Highlight({ text, query }) {
   );
 }
 
+function optionValue(option) {
+  return String(typeof option === 'string' ? option : option?.value ?? '');
+}
+
+function optionLabel(option) {
+  return String(typeof option === 'string' ? option : option?.label ?? optionValue(option));
+}
+
 /**
  * Text input with a styled suggestion dropdown (replacement for <datalist>).
  * Free text is allowed; suggestions just help. The menu is rendered in a
@@ -34,6 +42,7 @@ export default function Combobox({
   ariaLabel,
   ariaInvalid,
   maxItems = 50,
+  onSelect,
 }) {
   const autoId = useId();
   const listId = `${id || autoId}-list`;
@@ -43,14 +52,18 @@ export default function Combobox({
   const listRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
+  // Tab only accepts an option the user actually moved to.
+  const navigated = useRef(false);
   const [pos, setPos] = useState(null);
 
   const items = useMemo(() => {
     const q = String(value || '').trim().toLowerCase();
     // Empty, or already an exact choice → show everything so it can be changed.
-    if (!q || options.some((o) => o.toLowerCase() === q)) return options.slice(0, maxItems);
-    const starts = options.filter((o) => o.toLowerCase().startsWith(q));
-    const contains = options.filter((o) => !o.toLowerCase().startsWith(q) && o.toLowerCase().includes(q));
+    if (!q || options.some((o) => optionValue(o).toLowerCase() === q)) return options.slice(0, maxItems);
+    const matches = (option) => `${optionValue(option)} ${optionLabel(option)}`.toLowerCase();
+    const starts = options.filter((o) => matches(o).startsWith(q));
+    const startsSet = new Set(starts);
+    const contains = options.filter((o) => !startsSet.has(o) && matches(o).includes(q));
     return [...starts, ...contains].slice(0, maxItems);
   }, [value, options, maxItems]);
 
@@ -91,8 +104,9 @@ export default function Combobox({
 
   // Start on the current choice if there is one, else the first match.
   useEffect(() => {
-    const i = items.findIndex((o) => o.toLowerCase() === String(value || '').trim().toLowerCase());
+    const i = items.findIndex((o) => optionValue(o).toLowerCase() === String(value || '').trim().toLowerCase());
     setActive(i >= 0 ? i : 0);
+    navigated.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, open]);
 
@@ -102,7 +116,8 @@ export default function Combobox({
   }, [active]);
 
   const choose = (option) => {
-    onChange({ target: { value: option } });
+    onChange({ target: { value: optionValue(option) } });
+    onSelect?.(option);
     setOpen(false);
   };
 
@@ -110,9 +125,13 @@ export default function Combobox({
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       if (!open) setOpen(true);
-      else setActive((a) => Math.min(a + 1, items.length - 1));
+      else {
+        navigated.current = true;
+        setActive((a) => Math.min(a + 1, items.length - 1));
+      }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
+      navigated.current = true;
       setActive((a) => Math.max(a - 1, 0));
     } else if (e.key === 'Enter' && show && items[active]) {
       e.preventDefault();
@@ -120,7 +139,7 @@ export default function Combobox({
     } else if (e.key === 'Escape' && open) {
       e.preventDefault();
       setOpen(false);
-    } else if (e.key === 'Tab' && show && items[active] && value) {
+    } else if (e.key === 'Tab' && show && items[active] && value && navigated.current) {
       choose(items[active]);
     }
   };
@@ -190,22 +209,25 @@ export default function Combobox({
             ) : (
               <ul ref={listRef} id={listId} role="listbox" className="max-h-64 overflow-y-auto p-1.5">
                 {items.map((option, i) => {
-                  const selected = option.toLowerCase() === String(value || '').trim().toLowerCase();
+                const selected = optionValue(option).toLowerCase() === String(value || '').trim().toLowerCase();
                   return (
                     <li
-                      key={option}
+                    key={`${optionValue(option)}-${optionLabel(option)}`}
                       id={`${listId}-${i}`}
                       data-index={i}
                       role="option"
                       aria-selected={selected}
-                      onMouseEnter={() => setActive(i)}
+                      onMouseEnter={() => {
+                        navigated.current = true;
+                        setActive(i);
+                      }}
                       onClick={() => choose(option)}
                       className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm cursor-pointer transition-colors ${
                         i === active ? 'bg-orange-50 text-slate-900' : 'text-slate-700'
                       }`}
                     >
                       <span className="truncate">
-                        <Highlight text={option} query={String(value || '')} />
+                        <Highlight text={optionLabel(option)} query={String(value || '')} />
                       </span>
                       {selected && <Check className="w-4 h-4 text-orange-500 flex-shrink-0" />}
                     </li>

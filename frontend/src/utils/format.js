@@ -163,3 +163,11 @@ export function titleCase(value) {
     )
     .join(' ');
 }
+
+const CITY_ALIASES = { bangalore: 'bengaluru', banglore: 'bengaluru' };
+
+/** Lower-case canonical city key, so "Bangalore" and "Bengaluru" match. */
+export function cityKey(name) {
+  const key = String(name ?? '').trim().toLowerCase();
+  return CITY_ALIASES[key] || key;
+}

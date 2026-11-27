@@ -84,6 +84,7 @@ export class ApiError extends Error {
   }
 
   static describe(status, data, fieldErrors) {
+    if (status === 429) return 'Too many requests. Please wait a minute and try again.';
     if (data?.error) return toText(data.error);
     if (data?.detail) return toText(data.detail);
     if (data?.non_field_errors) return toText(data.non_field_errors);
@@ -152,7 +153,7 @@ let refreshInFlight = null;
 
 function refreshAccessToken() {
   const refresh = read(KEYS.refresh);
-  if (!refresh) return Promise.resolve(null);
+  if (!refresh) return Promise.resolve({ expired: true });
 
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
@@ -162,10 +163,13 @@ function refreshAccessToken() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh }),
         });
+        // Only a rejected refresh token ends the session; a 5xx/429 or a
+        // network blip is transient and must not log the user out.
+        if (res.status === 400 || res.status === 401) return { expired: true };
         if (!res.ok) return null;
         const data = await res.json();
         updateTokens(data);
-        return data.access;
+        return data.access ? { access: data.access } : null;
       } catch {
         return null;
       } finally {
@@ -195,10 +199,12 @@ export async function request(path, { method = 'GET', body, auth = false } = {},
   }
 
   if (res.status === 401 && auth && !isRetry) {
-    const newAccess = await refreshAccessToken();
-    if (newAccess) return request(path, { method, body, auth }, true);
-    clearSession();
-    sessionExpiredHandler?.();
+    const result = await refreshAccessToken();
+    if (result?.access) return request(path, { method, body, auth }, true);
+    if (result?.expired) {
+      clearSession();
+      sessionExpiredHandler?.();
+    }
   }
 
   const data = await parseBody(res);
